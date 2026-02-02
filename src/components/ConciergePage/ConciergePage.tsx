@@ -6,8 +6,7 @@ import { ChatInterface } from '@/components/ChatInterface';
 import { CheckoutOverlay } from '@/components/CheckoutOverlay';
 import { WelcomeScreen } from '@/components/WelcomeScreen/WelcomeScreen';
 import { WelcomeLoader } from '@/components/WelcomeScreen/WelcomeLoader';
-import { PersonaSelector } from '@/components/PersonaSelector/PersonaSelector';
-import { ProfilePanel } from '@/components/ProfilePanel/ProfilePanel';
+import { IdentityPanel } from '@/components/IdentityPanel/IdentityPanel';
 import { sceneAnimationVariants } from '@/utils/animations';
 
 export const ConciergePage: React.FC = () => {
@@ -53,8 +52,7 @@ export const ConciergePage: React.FC = () => {
         )}
       </AnimatePresence>
 
-      <PersonaSelector />
-      <ProfilePanel />
+      <IdentityPanel />
     </div>
   );
 };

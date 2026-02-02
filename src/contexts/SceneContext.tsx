@@ -279,6 +279,12 @@ export const SceneProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           } catch (error) {
             console.error('Welcome background generation failed:', error);
           }
+        } else {
+          // Use static default background (e.g. for unknown/appended customers)
+          dispatch({
+            type: 'SET_BACKGROUND',
+            background: { type: 'image', value: '/assets/backgrounds/default.png' },
+          });
         }
         break;
       }

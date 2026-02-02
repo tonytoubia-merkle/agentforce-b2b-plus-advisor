@@ -896,12 +896,12 @@ export interface PersonaStub {
 }
 
 export const PERSONA_STUBS: PersonaStub[] = [
-  { id: 'sarah', merkuryId: 'MRK-SC-90210', identityTier: 'known', defaultLabel: 'Sarah Chen', defaultSubtitle: 'Known Customer' },
-  { id: 'james', merkuryId: 'MRK-JR-78701', identityTier: 'known', defaultLabel: 'James Rodriguez', defaultSubtitle: 'Known Customer' },
-  { id: 'maya', merkuryId: 'MRK-MT-30302', identityTier: 'known', defaultLabel: 'Maya Thompson', defaultSubtitle: 'Known Customer' },
-  { id: 'david', merkuryId: 'MRK-DK-60614', identityTier: 'known', defaultLabel: 'David Kim', defaultSubtitle: 'Known Customer' },
-  { id: 'marcus', merkuryId: 'MRK-MW-11201', identityTier: 'known', defaultLabel: 'Marcus Williams', defaultSubtitle: 'Known Customer' },
-  { id: 'aisha', merkuryId: 'MRK-AP-10001', identityTier: 'appended', defaultLabel: 'Aisha Patel', defaultSubtitle: 'Merkury Appended' },
-  { id: 'priya', merkuryId: 'MRK-PS-75201', identityTier: 'appended', defaultLabel: 'Priya Sharma', defaultSubtitle: 'Merkury Appended' },
-  { id: 'anonymous', merkuryId: '', identityTier: 'anonymous', defaultLabel: 'Anonymous Visitor', defaultSubtitle: 'No Match' },
+  { id: 'sarah', merkuryId: 'MRK-SC-90210', identityTier: 'known', defaultLabel: 'Sarah Chen', defaultSubtitle: 'Merkury: Matched' },
+  { id: 'james', merkuryId: 'MRK-JR-78701', identityTier: 'known', defaultLabel: 'James Rodriguez', defaultSubtitle: 'Merkury: Matched' },
+  { id: 'maya', merkuryId: 'MRK-MT-30302', identityTier: 'known', defaultLabel: 'Maya Thompson', defaultSubtitle: 'Merkury: Matched' },
+  { id: 'david', merkuryId: 'MRK-DK-60614', identityTier: 'known', defaultLabel: 'David Kim', defaultSubtitle: 'Merkury: Matched' },
+  { id: 'marcus', merkuryId: 'MRK-MW-11201', identityTier: 'known', defaultLabel: 'Marcus Williams', defaultSubtitle: 'Merkury: Matched' },
+  { id: 'aisha', merkuryId: 'MRK-AP-10001', identityTier: 'appended', defaultLabel: 'Aisha Patel', defaultSubtitle: 'Merkury: Matched · Appended Only' },
+  { id: 'priya', merkuryId: 'MRK-PS-75201', identityTier: 'appended', defaultLabel: 'Priya Sharma', defaultSubtitle: 'Merkury: Matched · Appended Only' },
+  { id: 'anonymous', merkuryId: '', identityTier: 'anonymous', defaultLabel: 'Anonymous Visitor', defaultSubtitle: 'Merkury: No Match' },
 ];

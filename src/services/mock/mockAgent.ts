@@ -260,10 +260,8 @@ function generateWelcomeResponse(): AgentResponse | null {
             welcomeMessage: 'Welcome!',
             welcomeSubtext: "Discover our latest collection — from targeted treatments to everyday essentials.",
             sceneContext: {
-              setting: 'lifestyle',
-              mood: 'luxury-spa',
-              generateBackground: true,
-              backgroundPrompt: 'Luxurious spa-inspired beauty setting, marble and gold accents, premium skincare atmosphere, elegant warm lighting',
+              setting: 'neutral',
+              generateBackground: false,
             },
           },
         },
@@ -283,13 +281,8 @@ function generateWelcomeResponse(): AgentResponse | null {
           welcomeMessage: 'Welcome!',
           welcomeSubtext: "Your personal beauty concierge — let's find your perfect match.",
           sceneContext: {
-            // Use signals to pick the right mood, but don't explain why
-            setting: isWellness ? 'lifestyle' : 'neutral',
-            mood: isWellness ? 'calm-wellness' : 'elegant-discovery',
-            generateBackground: true,
-            backgroundPrompt: isWellness
-              ? 'Serene spa-inspired wellness setting, natural light, calm minimalist beauty space, zen atmosphere'
-              : 'Elegant luxury beauty boutique, sophisticated neutral tones, welcoming warm light',
+            setting: 'neutral',
+            generateBackground: false,
           },
         },
       },

@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import type { AgentMessage } from '@/types/agent';
-import type { CustomerSessionContext, CustomerProfile, AgentCapturedProfile, CapturedProfileField, ChatSummary } from '@/types/customer';
+import type { AgentMessage, UIAction } from '@/types/agent';
+import type { CustomerSessionContext, CustomerProfile, AgentCapturedProfile, CapturedProfileField, ChatSummary, TaggedContextField } from '@/types/customer';
+import { PROVENANCE_USAGE } from '@/types/customer';
 import { useScene } from './SceneContext';
 import { useCustomer } from './CustomerContext';
 import { generateMockResponse, setMockCustomerContext } from '@/services/mock/mockAgent';
@@ -86,13 +87,85 @@ function buildSessionContext(customer: CustomerProfile): CustomerSessionContext 
     );
   }
 
+  // ─── Build provenance-tagged context ───────────────────────────
+  const taggedContext: TaggedContextField[] = [];
+
+  // 1P-EXPLICIT (declared): beauty profile from preference center
+  if (customer.beautyProfile?.skinType) {
+    taggedContext.push({ value: `Skin type: ${customer.beautyProfile.skinType}`, provenance: 'declared', usage: 'direct' });
+  }
+  if (customer.beautyProfile?.concerns?.length) {
+    taggedContext.push({ value: `Concerns: ${customer.beautyProfile.concerns.join(', ')}`, provenance: 'declared', usage: 'direct' });
+  }
+  if (customer.beautyProfile?.allergies?.length) {
+    taggedContext.push({ value: `Allergies: ${customer.beautyProfile.allergies.join(', ')}`, provenance: 'declared', usage: 'direct' });
+  }
+  if (customer.beautyProfile?.fragrancePreference) {
+    taggedContext.push({ value: `Fragrance preference: ${customer.beautyProfile.fragrancePreference}`, provenance: 'declared', usage: 'direct' });
+  }
+
+  // 1P-BEHAVIORAL (observed): purchase history
+  for (const order of (customer.orders || []).slice(0, 5)) {
+    const items = order.lineItems.map((li) => li.productName).join(', ');
+    taggedContext.push({ value: `Purchased ${items} on ${order.orderDate} (${order.channel})`, provenance: 'observed', usage: 'direct' });
+  }
+
+  // Loyalty — observed (they enrolled)
+  if (customer.loyalty) {
+    const pts = customer.loyalty.pointsBalance ? ` (${customer.loyalty.pointsBalance} pts)` : '';
+    taggedContext.push({ value: `Loyalty: ${customer.loyalty.tier}${pts}`, provenance: 'observed', usage: 'direct' });
+  }
+
+  // Chat summaries — observed (from prior conversations)
+  for (const chat of (customer.chatSummaries || []).slice(0, 3)) {
+    taggedContext.push({ value: `[${chat.sessionDate}] ${chat.summary}`, provenance: 'observed', usage: 'direct' });
+  }
+
+  // Meaningful events — may be stated or agent-inferred
+  for (const event of customer.meaningfulEvents || []) {
+    const prov = event.eventType === 'preference' || event.eventType === 'milestone' ? 'stated' : 'agent_inferred';
+    taggedContext.push({ value: event.description, provenance: prov, usage: PROVENANCE_USAGE[prov] });
+  }
+
+  // 1P-IMPLICIT (inferred): browse sessions
+  for (const session of (customer.browseSessions || []).slice(0, 3)) {
+    taggedContext.push({
+      value: `Browsed ${session.categoriesBrowsed.join(', ')} on ${session.sessionDate} (${session.durationMinutes}min)`,
+      provenance: 'inferred',
+      usage: 'soft',
+    });
+  }
+
+  // Agent-captured profile fields
+  if (customer.agentCapturedProfile) {
+    for (const [key, field] of Object.entries(customer.agentCapturedProfile)) {
+      if (!field) continue;
+      const typedField = field as CapturedProfileField;
+      const prov = typedField.confidence === 'stated' ? 'stated' : 'agent_inferred';
+      const val = Array.isArray(typedField.value) ? typedField.value.join(', ') : typedField.value;
+      taggedContext.push({ value: `${key}: ${val}`, provenance: prov, usage: PROVENANCE_USAGE[prov] });
+    }
+  }
+
+  // 3P-APPENDED: Merkury enrichment
+  if (customer.appendedProfile?.interests) {
+    for (const interest of customer.appendedProfile.interests) {
+      taggedContext.push({ value: interest, provenance: 'appended', usage: 'influence_only' });
+    }
+  }
+  if (customer.appendedProfile?.lifestyleSignals) {
+    for (const signal of customer.appendedProfile.lifestyleSignals) {
+      taggedContext.push({ value: signal, provenance: 'appended', usage: 'influence_only' });
+    }
+  }
+
   return {
     customerId: customer.id,
     name: customer.name,
     email: customer.email,
     identityTier: customer.merkuryIdentity?.identityTier || 'anonymous',
-    skinType: customer.beautyProfile.skinType,
-    concerns: customer.beautyProfile.concerns,
+    skinType: customer.beautyProfile?.skinType,
+    concerns: customer.beautyProfile?.concerns,
     recentPurchases,
     recentActivity,
     appendedInterests: customer.appendedProfile?.interests || [],
@@ -103,19 +176,21 @@ function buildSessionContext(customer: CustomerProfile): CustomerSessionContext 
     browseInterests,
     capturedProfile,
     missingProfileFields,
+    taggedContext,
   };
 }
 
-/** Build a welcome message that embeds customer context so the agent can personalize. */
+/** Build a welcome message that embeds customer context so the agent can personalize.
+ *  Uses provenance-tagged fields so the agent knows what it can reference directly
+ *  vs. what should only influence curation vs. what must never be mentioned. */
 function buildWelcomeMessage(ctx: CustomerSessionContext): string {
   const isAppended = ctx.identityTier === 'appended';
   const isAnonymous = ctx.identityTier === 'anonymous';
 
   const lines: string[] = ['[WELCOME]'];
 
+  // ── Identity header ──────────────────────────────────────────
   if (isAppended) {
-    // Appended: we resolved identity via Merkury but they never gave us their info directly.
-    // DO NOT use their name or reference appended data directly — it would feel invasive.
     lines.push(`Customer: First-time visitor (identity resolved via Merkury, NOT a hand-raiser)`);
     lines.push(`Identity: appended`);
     lines.push(`[INSTRUCTION] Do NOT greet by name. Do NOT reference specific demographic or interest data directly. Instead, use appended signals to subtly curate product selections and scene choices. Frame recommendations as "popular picks", "trending", or "you might enjoy" — never "based on your profile" or "we know you like X".`);
@@ -127,25 +202,43 @@ function buildWelcomeMessage(ctx: CustomerSessionContext): string {
     if (ctx.email) lines.push(`[INSTRUCTION] The customer has been identified via their email address (${ctx.email}). Call Identify Customer By Email with this address to resolve their contactId before performing any profile updates or event captures.`);
   }
 
-  if (ctx.skinType) lines.push(`Skin type: ${ctx.skinType}`);
-  if (ctx.concerns?.length) lines.push(`Concerns: ${ctx.concerns.join(', ')}`);
-  if (ctx.loyaltyTier) {
-    const pts = ctx.loyaltyPoints ? ` (${ctx.loyaltyPoints} pts)` : '';
-    lines.push(`Loyalty: ${ctx.loyaltyTier}${pts}`);
-  }
-  if (ctx.recentActivity?.length) lines.push(`Recent orders: ${ctx.recentActivity.join('; ')}`);
-  if (ctx.chatContext?.length) lines.push(`Past conversations: ${ctx.chatContext.join('; ')}`);
-  if (ctx.meaningfulEvents?.length) lines.push(`Key events: ${ctx.meaningfulEvents.join('; ')}`);
-  if (ctx.browseInterests?.length) lines.push(`Recent browsing: ${ctx.browseInterests.join('; ')}`);
-  if (ctx.appendedInterests?.length) {
-    if (isAppended) {
-      lines.push(`[SUBTLE CURATION SIGNALS — do NOT reference directly]: ${ctx.appendedInterests.join(', ')}`);
-    } else {
-      lines.push(`Interests (Merkury): ${ctx.appendedInterests.join(', ')}`);
+  // ── Data usage rules ─────────────────────────────────────────
+  lines.push('');
+  lines.push('[DATA USAGE RULES]');
+  lines.push('Context below is tagged by provenance. Follow these rules strictly:');
+  lines.push('- [CONFIRMED]: Customer stated or declared this. Reference explicitly ("You mentioned...", "Based on your profile...").');
+  lines.push('- [OBSERVED/INFERRED]: Behavioral signals or agent inferences. Reference gently ("You were looking at...", "It seems like...").');
+  lines.push('- [INFLUENCE ONLY]: Third-party appended data. NEVER mention directly. Use only to curate product selection, scene mood, or ordering of recommendations.');
+
+  // ── Provenance-tagged context ────────────────────────────────
+  if (ctx.taggedContext?.length) {
+    const direct = ctx.taggedContext.filter(f => f.usage === 'direct');
+    const soft = ctx.taggedContext.filter(f => f.usage === 'soft');
+    const influence = ctx.taggedContext.filter(f => f.usage === 'influence_only');
+
+    if (direct.length) {
+      lines.push('');
+      lines.push('[CONFIRMED — OK to reference directly]');
+      direct.forEach(f => lines.push(`  ${f.value}`));
+    }
+    if (soft.length) {
+      lines.push('');
+      lines.push('[OBSERVED/INFERRED — reference gently, e.g. "it looks like..." or "you might enjoy..."]');
+      soft.forEach(f => lines.push(`  ${f.value}`));
+    }
+    if (influence.length) {
+      lines.push('');
+      lines.push('[INFLUENCE ONLY — use to curate selections, NEVER reference directly]');
+      influence.forEach(f => lines.push(`  ${f.value}`));
     }
   }
-  if (ctx.capturedProfile?.length) lines.push(`Known about this customer: ${ctx.capturedProfile.join('; ')}`);
-  if (ctx.missingProfileFields?.length) lines.push(`[ENRICHMENT OPPORTUNITY] Try to naturally learn: ${ctx.missingProfileFields.join(', ')}`);
+
+  // ── Enrichment opportunity ───────────────────────────────────
+  if (ctx.missingProfileFields?.length) {
+    lines.push('');
+    lines.push(`[ENRICHMENT OPPORTUNITY] Try to naturally learn: ${ctx.missingProfileFields.join(', ')}`);
+  }
+
   return lines.join('\n');
 }
 
@@ -236,7 +329,14 @@ export const ConversationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   // When persona changes, reset conversation and trigger welcome
   useEffect(() => {
-    if (!customer) return;
+    if (!customer) {
+      // Anonymous / no identity — reset to default starting page
+      resetScene();
+      setMessages([]);
+      setSuggestedActions([]);
+      setIsLoadingWelcome(false);
+      return;
+    }
 
     const sessionCtx = buildSessionContext(customer);
 
@@ -266,6 +366,34 @@ export const ConversationProvider: React.FC<{ children: React.ReactNode }> = ({ 
           }
         }
         const response = await getAgentResponse(welcomeMsg);
+
+        // The real Agentforce agent may return CHANGE_SCENE or SHOW_PRODUCTS
+        // instead of WELCOME_SCENE on the first message. Since we know this IS
+        // the welcome flow, normalize it to WELCOME_SCENE so the welcome overlay
+        // renders. Preserve any products and scene context the agent provided.
+        if (response.uiDirective && response.uiDirective.action !== 'WELCOME_SCENE') {
+          const d = response.uiDirective;
+          response.uiDirective = {
+            ...d,
+            action: 'WELCOME_SCENE' as UIAction,
+            payload: {
+              ...d.payload,
+              welcomeMessage: d.payload?.welcomeMessage || response.message?.split('.')[0] || 'Welcome!',
+              welcomeSubtext: d.payload?.welcomeSubtext || response.message || '',
+            },
+          };
+        }
+
+        // For unknown customers (appended/anonymous), use the static default
+        // background instead of generating one — save generation for known users.
+        if (sessionCtx.identityTier !== 'known' && response.uiDirective?.payload) {
+          response.uiDirective.payload.sceneContext = {
+            ...response.uiDirective.payload.sceneContext,
+            setting: 'neutral',
+            generateBackground: false,
+          };
+        }
+
         const agentMessage: AgentMessage = {
           id: uuidv4(),
           role: 'agent',

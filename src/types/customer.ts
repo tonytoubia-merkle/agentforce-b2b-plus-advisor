@@ -1,5 +1,33 @@
 export type IdentityTier = 'known' | 'appended' | 'anonymous';
 
+// ─── Data Provenance & Usage Permissions ────────────────────────
+// Tags every piece of customer context with HOW it was obtained,
+// which determines HOW the agent may reference it.
+export type DataProvenance =
+  | 'stated'          // 0P: customer said it in conversation
+  | 'declared'        // 1P-explicit: preference form, account profile
+  | 'observed'        // 1P-behavioral: purchase history, orders
+  | 'inferred'        // 1P-implicit: browse behavior, click patterns
+  | 'agent_inferred'  // Derived: agent's inference from conversations
+  | 'appended';       // 3P: Merkury or other third-party append
+
+export type UsagePermission = 'direct' | 'soft' | 'influence_only';
+
+export const PROVENANCE_USAGE: Record<DataProvenance, UsagePermission> = {
+  stated: 'direct',
+  declared: 'direct',
+  observed: 'direct',
+  inferred: 'soft',
+  agent_inferred: 'soft',
+  appended: 'influence_only',
+};
+
+export interface TaggedContextField {
+  value: string;
+  provenance: DataProvenance;
+  usage: UsagePermission;
+}
+
 export interface MerkuryIdentity {
   merkuryId: string;
   identityTier: IdentityTier;
@@ -237,4 +265,6 @@ export interface CustomerSessionContext {
   capturedProfile?: string[];
   // Fields the agent should try to capture (missing from profile)
   missingProfileFields?: string[];
+  // Provenance-tagged context fields for privacy-aware agent prompting
+  taggedContext?: TaggedContextField[];
 }
