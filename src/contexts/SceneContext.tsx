@@ -153,9 +153,14 @@ export const SceneProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           dispatch({ type: 'TRANSITION_LAYOUT', layout, products: payload.products });
         }
 
-        // Use explicit sceneContext if provided, otherwise infer from products
-        const setting: SceneSetting = payload.sceneContext?.setting
-          || inferSettingFromProducts(payload.products || []);
+        // Use explicit sceneContext setting if provided. Otherwise, keep the current
+        // setting when we already have a background image — only infer from products
+        // if we're on the initial gradient (no image loaded yet).
+        const curBg = sceneRef.current;
+        const hasExistingImage = curBg.background.type === 'image' && curBg.background.value;
+        const agentExplicitSetting = payload.sceneContext?.setting;
+        const setting: SceneSetting = agentExplicitSetting
+          || (hasExistingImage ? curBg.setting : inferSettingFromProducts(payload.products || []));
         const shouldGenerate = payload.sceneContext?.generateBackground !== false;
 
         // Auto-generate a backgroundPrompt if the agent didn't provide one
@@ -204,8 +209,12 @@ export const SceneProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
 
       case 'CHANGE_SCENE': {
-        const sceneSetting: SceneSetting = payload.sceneContext?.setting
-          || inferSettingFromProducts(payload.products || []);
+        // Keep current setting when agent doesn't explicitly provide one and we have a background
+        const curForChange = sceneRef.current;
+        const hasImageForChange = curForChange.background.type === 'image' && curForChange.background.value;
+        const agentChangeSetting = payload.sceneContext?.setting;
+        const sceneSetting: SceneSetting = agentChangeSetting
+          || (hasImageForChange ? curForChange.setting : inferSettingFromProducts(payload.products || []));
         const shouldGen = payload.sceneContext?.generateBackground !== false;
 
         // Auto-generate a backgroundPrompt if not provided
