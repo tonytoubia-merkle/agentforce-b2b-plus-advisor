@@ -57,17 +57,9 @@ export function useProductStaging(
               setIsStaging(false);
               return;
             }
-          } else {
-            // No CMS channel — try ContentVersion directly
-            const { fetchContentVersionByTag } = await import('@/services/cms/readContentVersion');
-            const cvUrl = await fetchContentVersionByTag(tag, token);
-            if (cvUrl && !abortRef.current) {
-              globalCache[cacheKey] = cvUrl;
-              setStagedUrl(cvUrl);
-              setIsStaging(false);
-              return;
-            }
           }
+          // Skip ContentVersion fallback — those URLs require auth
+          // headers that <img> tags can't send, resulting in 400 errors.
         } catch {
           // Lookup failed, continue to generate
         }

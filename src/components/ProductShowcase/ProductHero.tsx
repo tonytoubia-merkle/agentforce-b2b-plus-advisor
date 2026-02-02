@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useScene } from '@/contexts/SceneContext';
-import { useProductStaging } from '@/hooks/useProductStaging';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { ProductDetails } from './ProductDetails';
@@ -12,14 +11,8 @@ interface ProductHeroProps {
 }
 
 export const ProductHero: React.FC<ProductHeroProps> = ({ product }) => {
-  const { scene, openCheckout } = useScene();
+  const { openCheckout } = useScene();
   const [showDetails, setShowDetails] = useState(false);
-  const { imageUrl, isStaging, isStaged } = useProductStaging(
-    product.id,
-    product.imageUrl,
-    scene.setting,
-    product.name
-  );
 
   return (
     <div className="flex flex-col md:flex-row items-center gap-6 max-w-2xl">
@@ -30,17 +23,10 @@ export const ProductHero: React.FC<ProductHeroProps> = ({ product }) => {
         className="relative"
       >
         <div className="w-48 h-48 rounded-2xl overflow-hidden shadow-xl relative">
-          {isStaging && (
-            <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/20 backdrop-blur-sm">
-              <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            </div>
-          )}
           <img
-            src={imageUrl}
+            src={product.imageUrl}
             alt={product.name}
-            className={`w-full h-full relative z-10 transition-opacity duration-500 object-contain product-blend ${
-              isStaging ? 'opacity-50' : 'opacity-100'
-            }`}
+            className="w-full h-full relative z-10 object-contain product-blend"
           />
         </div>
         {product.personalizationScore && product.personalizationScore > 0.8 && (

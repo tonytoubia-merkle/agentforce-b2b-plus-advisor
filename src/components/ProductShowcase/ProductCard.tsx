@@ -1,6 +1,5 @@
 import { motion } from 'framer-motion';
 import { useScene } from '@/contexts/SceneContext';
-import { useProductStaging } from '@/hooks/useProductStaging';
 import { Badge } from '@/components/ui/Badge';
 import type { Product } from '@/types/product';
 
@@ -9,13 +8,7 @@ interface ProductCardProps {
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
-  const { scene, openCheckout } = useScene();
-  const { imageUrl, isStaging, isStaged } = useProductStaging(
-    product.id,
-    product.imageUrl,
-    scene.setting,
-    product.name
-  );
+  const { openCheckout } = useScene();
 
   return (
     <motion.div
@@ -24,17 +17,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       className="rounded-2xl overflow-hidden cursor-pointer group"
     >
       <div className="relative aspect-square">
-        {isStaging && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/20 backdrop-blur-sm">
-            <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-          </div>
-        )}
         <img
-          src={imageUrl}
+          src={product.imageUrl}
           alt={product.name}
-          className={`w-full h-full transition-opacity duration-500 object-contain product-blend ${
-            isStaging ? 'opacity-50' : 'opacity-100'
-          }`}
+          className="w-full h-full object-contain product-blend"
         />
         {product.attributes?.isTravel && (
           <Badge className="absolute top-3 left-3 bg-blue-500">

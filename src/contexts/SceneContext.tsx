@@ -160,10 +160,12 @@ export const SceneProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           sceneCtx.setting = setting;
         }
 
-        // Skip regeneration if we already have a generated image for the same setting
-        // Use ref to avoid stale closure reading initial state
+        // Skip regeneration if we already have (or are generating) an image for the same setting
         const cur = sceneRef.current;
-        const alreadyHasImage = cur.setting === setting && cur.background.type === 'image' && cur.background.value;
+        const alreadyHasImage = cur.setting === setting && (
+          (cur.background.type === 'image' && cur.background.value) ||
+          (cur.background.type === 'generative' && cur.background.isLoading)
+        );
 
         dispatch({ type: 'SET_SETTING', setting });
 
@@ -208,9 +210,12 @@ export const SceneProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           changeCtx.generateBackground = true;
         }
 
-        // Skip regeneration if same setting + already have image + agent didn't request a specific prompt
+        // Skip regeneration if same setting + already have (or generating) image + agent didn't request a specific prompt
         const curScene = sceneRef.current;
-        const alreadyHasSceneImage = curScene.setting === sceneSetting && curScene.background.type === 'image' && curScene.background.value && !agentProvidedPrompt;
+        const alreadyHasSceneImage = curScene.setting === sceneSetting && !agentProvidedPrompt && (
+          (curScene.background.type === 'image' && curScene.background.value) ||
+          (curScene.background.type === 'generative' && curScene.background.isLoading)
+        );
 
         dispatch({ type: 'SET_SETTING', setting: sceneSetting });
 
