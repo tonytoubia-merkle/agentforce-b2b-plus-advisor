@@ -1,31 +1,28 @@
 export type ProductCategory =
-  | 'engineered-resin'
-  | 'commodity-resin'
-  | 'elastomer'
-  | 'adhesive'
-  | 'sealant'
-  | 'color-masterbatch'
-  | 'sustainable-resin'
-  | 'high-performance-polymer'
-  | 'compound'
-  | 'additive'
-  | 'purge-compound'
-  | 'recycled-resin';
+  | 'wind-turbine'
+  | 'solar-panel'
+  | 'inverter'
+  | 'mounting-system'
+  | 'energy-storage'
+  | 'balance-of-system'
+  | 'monitoring'
+  | 'transformer'
+  | 'cable-harness';
 
 export interface ProductAttributes {
-  processingMethod?: ('injection-molding' | 'extrusion' | 'blow-molding' | 'thermoforming' | 'rotational-molding' | '3d-printing')[];
+  powerRating?: string;
+  voltage?: string;
+  efficiency?: string;
+  weight?: string;
+  dimensions?: string;
+  warranty?: string;
   industries?: string[];
   certifications?: string[];
   packagingSize?: string;
   minOrderQty?: string;
   leadTimeDays?: number;
   sustainableContent?: string;
-  // Legacy compat
-  skinType?: string[];
-  concerns?: string[];
-  ingredients?: string[];
-  size?: string;
-  isTravel?: boolean;
+  processingMethod?: string[];
 }
 
 export interface Product {

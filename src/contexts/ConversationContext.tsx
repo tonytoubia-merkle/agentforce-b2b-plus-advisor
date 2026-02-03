@@ -10,6 +10,7 @@ import type { MockAgentSnapshot } from '@/services/mock/mockAgent';
 import type { AgentResponse } from '@/types/agent';
 import { getAgentforceClient } from '@/services/agentforce/client';
 import { getDataCloudWriteService } from '@/services/datacloud';
+import { useActivityToast } from '@/components/ActivityToast';
 import type { SceneSnapshot } from './SceneContext';
 
 const useMockData = import.meta.env.VITE_USE_MOCK_DATA !== 'false';
@@ -28,7 +29,6 @@ interface SessionSnapshot {
 }
 
 function buildSessionContext(customer: CustomerProfile): CustomerSessionContext {
-  // Flatten recent orders into readable purchase/order summaries
   const recentOrders = (customer.orders || [])
     .sort((a, b) => b.orderDate.localeCompare(a.orderDate))
     .slice(0, 5);
@@ -37,20 +37,18 @@ function buildSessionContext(customer: CustomerProfile): CustomerSessionContext 
   );
   const recentActivity = recentOrders.map((o) => {
     const items = o.lineItems.map((li) => {
-      const qty = li.quantity ? ` (${li.quantity} lbs)` : '';
+      const qty = li.quantity ? ` (${li.quantity} units)` : '';
       return `${li.productName}${qty}`;
     }).join(', ');
     const status = o.status ? ` — ${o.status}` : '';
     return `PO ${o.orderId} on ${o.orderDate} (${o.channel}): ${items}${status}`;
   });
 
-  // Chat context summaries
   const chatContext = (customer.chatSummaries || [])
     .sort((a, b) => b.sessionDate.localeCompare(a.sessionDate))
     .slice(0, 3)
     .map((c) => `[${c.sessionDate}] ${c.summary}`);
 
-  // Meaningful events
   const meaningfulEvents = (customer.meaningfulEvents || [])
     .sort((a, b) => b.capturedAt.localeCompare(a.capturedAt))
     .map((e) => {
@@ -58,13 +56,11 @@ function buildSessionContext(customer: CustomerProfile): CustomerSessionContext 
       return `[${e.capturedAt}] ${e.description}${note}`;
     });
 
-  // Browse interests
   const browseInterests = (customer.browseSessions || [])
     .sort((a, b) => b.sessionDate.localeCompare(a.sessionDate))
     .slice(0, 3)
     .map((b) => `Browsed ${b.categoriesBrowsed.join(', ')} on ${b.sessionDate} (${b.durationMinutes}min, ${b.device})`);
 
-  // Also include legacy recentActivity if orders are empty
   if (!recentActivity.length && customer.recentActivity?.length) {
     recentActivity.push(...customer.recentActivity.map((a) => a.description));
   }
@@ -72,27 +68,23 @@ function buildSessionContext(customer: CustomerProfile): CustomerSessionContext 
     recentPurchases.push(...customer.purchaseHistory.map((p) => p.productId));
   }
 
-  // Agent-captured profile fields — flatten to readable strings
   const captured = customer.agentCapturedProfile;
   const capturedProfile: string[] = [];
   const missingProfileFields: string[] = [];
 
   if (captured) {
     const fieldLabel: Record<string, string> = {
-      annualVolume: 'Annual volume (lbs)',
+      annualVolume: 'Annual procurement volume',
       budgetCycle: 'Budget cycle',
       qualityStandards: 'Quality standards',
       sustainabilityGoals: 'Sustainability goals',
       preferredLeadTime: 'Preferred lead time',
-      processingMethod: 'Processing method',
-      materialSpecs: 'Material specifications',
-      complianceReqs: 'Compliance requirements',
-      warehouseLocation: 'Warehouse / ship-to location',
-      reorderFrequency: 'Reorder frequency',
       primaryApplication: 'Primary application',
-      secondaryApplications: 'Secondary applications',
-      testingRequirements: 'Testing / certification requirements',
-      packagingPreference: 'Packaging preference',
+      projectPipeline: 'Project pipeline',
+      gridInterconnection: 'Grid interconnection',
+      siteConditions: 'Site conditions',
+      warehouseLocations: 'Warehouse / ship-to location',
+      inventoryStrategy: 'Inventory strategy',
     };
     for (const [key, label] of Object.entries(fieldLabel)) {
       const field = captured[key as keyof AgentCapturedProfile] as CapturedProfileField | undefined;
@@ -104,59 +96,52 @@ function buildSessionContext(customer: CustomerProfile): CustomerSessionContext 
       }
     }
   } else {
-    // No captured profile at all — everything is missing
     missingProfileFields.push(
-      'Annual volume (lbs)', 'Budget cycle', 'Quality standards',
-      'Sustainability goals', 'Processing method', 'Preferred lead time',
-      'Primary application',
+      'Annual procurement volume', 'Budget cycle', 'Quality standards',
+      'Sustainability goals', 'Primary application', 'Preferred lead time',
+      'Project pipeline',
     );
   }
 
   // ─── Build provenance-tagged context ───────────────────────────
   const taggedContext: TaggedContextField[] = [];
 
-  // 1P-EXPLICIT (declared): industry profile — industry, applications, certifications
-  if (customer.beautyProfile?.skinType) {
-    taggedContext.push({ value: `Industry: ${customer.beautyProfile.skinType}`, provenance: 'declared', usage: 'direct' });
+  if (customer.beautyProfile?.industry) {
+    taggedContext.push({ value: `Industry: ${customer.beautyProfile.industry}`, provenance: 'declared', usage: 'direct' });
   }
-  if (customer.beautyProfile?.concerns?.length) {
-    taggedContext.push({ value: `Applications: ${customer.beautyProfile.concerns.join(', ')}`, provenance: 'declared', usage: 'direct' });
+  if (customer.beautyProfile?.primaryApplications?.length) {
+    taggedContext.push({ value: `Applications: ${customer.beautyProfile.primaryApplications.join(', ')}`, provenance: 'declared', usage: 'direct' });
   }
-  if (customer.beautyProfile?.allergies?.length) {
-    taggedContext.push({ value: `Certifications: ${customer.beautyProfile.allergies.join(', ')}`, provenance: 'declared', usage: 'direct' });
+  if (customer.beautyProfile?.certifications?.length) {
+    taggedContext.push({ value: `Certifications: ${customer.beautyProfile.certifications.join(', ')}`, provenance: 'declared', usage: 'direct' });
   }
-  if (customer.beautyProfile?.fragrancePreference) {
-    taggedContext.push({ value: `Preferred resins/brands: ${customer.beautyProfile.fragrancePreference}`, provenance: 'declared', usage: 'direct' });
+  if (customer.beautyProfile?.preferredBrands?.length) {
+    taggedContext.push({ value: `Preferred brands: ${customer.beautyProfile.preferredBrands.join(', ')}`, provenance: 'declared', usage: 'direct' });
   }
 
-  // 1P-BEHAVIORAL (observed): order history
   for (const order of (customer.orders || []).slice(0, 5)) {
     const items = order.lineItems.map((li) => {
-      const qty = li.quantity ? ` (${li.quantity} lbs)` : '';
+      const qty = li.quantity ? ` (${li.quantity} units)` : '';
       return `${li.productName}${qty}`;
     }).join(', ');
     const status = order.status ? ` — ${order.status}` : '';
     taggedContext.push({ value: `PO ${order.orderId}: ${items} on ${order.orderDate} (${order.channel})${status}`, provenance: 'observed', usage: 'direct' });
   }
 
-  // Account tier — observed (they are enrolled)
   if (customer.loyalty) {
     const pts = customer.loyalty.pointsBalance ? ` (volume credit: ${customer.loyalty.pointsBalance})` : '';
     taggedContext.push({ value: `Account tier: ${customer.loyalty.tier}${pts}`, provenance: 'observed', usage: 'direct' });
   }
 
-  // Chat summaries — observed (from prior conversations)
   for (const chat of (customer.chatSummaries || []).slice(0, 3)) {
     taggedContext.push({ value: `[${chat.sessionDate}] ${chat.summary}`, provenance: 'observed', usage: 'direct' });
   }
 
-  // Meaningful events — may be stated or agent-inferred
   for (const event of customer.meaningfulEvents || []) {
     const prov = event.eventType === 'preference' || event.eventType === 'milestone' ? 'stated' : 'agent_inferred';
     taggedContext.push({ value: event.description, provenance: prov, usage: PROVENANCE_USAGE[prov] });
   }
 
-  // 1P-IMPLICIT (inferred): browse sessions
   for (const session of (customer.browseSessions || []).slice(0, 3)) {
     taggedContext.push({
       value: `Browsed ${session.categoriesBrowsed.join(', ')} on ${session.sessionDate} (${session.durationMinutes}min)`,
@@ -165,7 +150,6 @@ function buildSessionContext(customer: CustomerProfile): CustomerSessionContext 
     });
   }
 
-  // Agent-captured profile fields
   if (customer.agentCapturedProfile) {
     for (const [key, field] of Object.entries(customer.agentCapturedProfile)) {
       if (!field) continue;
@@ -176,7 +160,6 @@ function buildSessionContext(customer: CustomerProfile): CustomerSessionContext 
     }
   }
 
-  // 3P-APPENDED: Merkury enrichment (company size, revenue, industry vertical)
   if (customer.appendedProfile?.interests) {
     for (const interest of customer.appendedProfile.interests) {
       taggedContext.push({ value: interest, provenance: 'appended', usage: 'influence_only' });
@@ -192,13 +175,14 @@ function buildSessionContext(customer: CustomerProfile): CustomerSessionContext 
     customerId: customer.id,
     name: customer.name,
     email: customer.email,
+    company: customer.company,
     identityTier: customer.merkuryIdentity?.identityTier || 'anonymous',
-    skinType: customer.beautyProfile?.skinType,
-    concerns: customer.beautyProfile?.concerns,
+    industry: customer.beautyProfile?.industry,
+    primaryApplications: customer.beautyProfile?.primaryApplications,
     recentPurchases,
     recentActivity,
     appendedInterests: customer.appendedProfile?.interests || [],
-    loyaltyTier: customer.loyalty?.tier || customer.loyaltyTier,
+    loyaltyTier: customer.loyalty?.tier,
     loyaltyPoints: customer.loyalty?.pointsBalance,
     chatContext,
     meaningfulEvents,
@@ -209,29 +193,24 @@ function buildSessionContext(customer: CustomerProfile): CustomerSessionContext 
   };
 }
 
-/** Build a welcome message that embeds customer context so the agent can personalize.
- *  Uses provenance-tagged fields so the agent knows what it can reference directly
- *  vs. what should only influence curation vs. what must never be mentioned. */
 function buildWelcomeMessage(ctx: CustomerSessionContext): string {
   const isAppended = ctx.identityTier === 'appended';
   const isAnonymous = ctx.identityTier === 'anonymous';
 
   const lines: string[] = ['[WELCOME]'];
 
-  // ── System instructions ────────────────────────────────────────
   lines.push('[SYSTEM INSTRUCTIONS]');
-  lines.push('You are a Formerra Plus materials advisor — the concierge service of Formerra, a leading specialty & engineered materials distributor.');
-  lines.push('Maintain a professional B2B tone. You have deep technical knowledge of plastics, resins, and engineered materials.');
-  lines.push('Focus on account management, order tracking, reorder assistance, material selection, and technical guidance.');
-  lines.push('When discussing materials, reference relevant properties (melt flow index, tensile strength, impact resistance, etc.) where appropriate.');
-  lines.push('Help customers find the right material for their application, track existing orders, and manage their account efficiently.');
+  lines.push('You are a Formerra Plus renewable energy advisor — the advisory service of Formerra, a leading B2B distributor of wind turbine components, solar equipment, and energy storage solutions.');
+  lines.push('Maintain a professional B2B tone. You have deep technical knowledge of renewable energy equipment and components.');
+  lines.push('Focus on account management, order tracking, reorder assistance, equipment selection, and technical guidance.');
+  lines.push('When discussing equipment, reference relevant specifications (power rating, efficiency, certifications, warranty) where appropriate.');
+  lines.push('Help customers find the right equipment for their projects, track existing orders, and manage their account efficiently.');
   lines.push('');
 
-  // ── Identity header ──────────────────────────────────────────
   if (isAppended) {
     lines.push(`Customer: First-time visitor (identity resolved via Merkury, NOT a hand-raiser)`);
     lines.push(`Identity: appended`);
-    lines.push(`[INSTRUCTION] Do NOT greet by name. Do NOT reference specific company data or industry signals directly. Instead, use appended signals to subtly curate product selections and material recommendations. Frame suggestions as "popular in your sector", "commonly specified for these applications", or "you might consider" — never "based on your profile" or "we know your company".`);
+    lines.push(`[INSTRUCTION] Do NOT greet by name. Do NOT reference specific company data or industry signals directly. Instead, use appended signals to subtly curate product selections and equipment recommendations. Frame suggestions as "popular in your sector", "commonly specified for these applications", or "you might consider" — never "based on your profile" or "we know your company".`);
   } else if (isAnonymous) {
     lines.push(`Customer: Anonymous visitor`);
     lines.push(`Identity: anonymous`);
@@ -242,15 +221,13 @@ function buildWelcomeMessage(ctx: CustomerSessionContext): string {
     if (ctx.email) lines.push(`[INSTRUCTION] The customer has been identified via their email address (${ctx.email}). Call Identify Customer By Email with this address to resolve their contactId before performing any profile updates or event captures.`);
   }
 
-  // ── Data usage rules ─────────────────────────────────────────
   lines.push('');
   lines.push('[DATA USAGE RULES]');
   lines.push('Context below is tagged by provenance. Follow these rules strictly:');
-  lines.push('- [CONFIRMED]: Customer stated or declared this (industry, applications, certifications, preferred resins/brands, order history). Reference explicitly ("Your account shows...", "Based on your specifications...").');
-  lines.push('- [OBSERVED/INFERRED]: Behavioral signals or agent inferences (browse behavior, inferred processing needs). Reference gently ("You were looking at...", "It appears you may need...").');
-  lines.push('- [INFLUENCE ONLY]: Third-party appended data (company size, estimated revenue, industry vertical). NEVER mention directly. Use only to curate material recommendations, prioritize product categories, or tailor technical depth.');
+  lines.push('- [CONFIRMED]: Customer stated or declared this (industry, applications, certifications, preferred brands, order history). Reference explicitly ("Your account shows...", "Based on your specifications...").');
+  lines.push('- [OBSERVED/INFERRED]: Behavioral signals or agent inferences (browse behavior, inferred project needs). Reference gently ("You were looking at...", "It appears you may need...").');
+  lines.push('- [INFLUENCE ONLY]: Third-party appended data (company size, estimated revenue, industry vertical). NEVER mention directly. Use only to curate equipment recommendations, prioritize product categories, or tailor technical depth.');
 
-  // ── Provenance-tagged context ────────────────────────────────
   if (ctx.taggedContext?.length) {
     const direct = ctx.taggedContext.filter(f => f.usage === 'direct');
     const soft = ctx.taggedContext.filter(f => f.usage === 'soft');
@@ -263,17 +240,16 @@ function buildWelcomeMessage(ctx: CustomerSessionContext): string {
     }
     if (soft.length) {
       lines.push('');
-      lines.push('[OBSERVED/INFERRED — reference gently, e.g. "it looks like..." or "based on your recent activity..."]');
+      lines.push('[OBSERVED/INFERRED — reference gently]');
       soft.forEach(f => lines.push(`  ${f.value}`));
     }
     if (influence.length) {
       lines.push('');
-      lines.push('[INFLUENCE ONLY — use to curate material selections, NEVER reference directly]');
+      lines.push('[INFLUENCE ONLY — use to curate equipment selections, NEVER reference directly]');
       influence.forEach(f => lines.push(`  ${f.value}`));
     }
   }
 
-  // ── Enrichment opportunity ───────────────────────────────────
   if (ctx.missingProfileFields?.length) {
     lines.push('');
     lines.push(`[ENRICHMENT OPPORTUNITY] Try to naturally learn: ${ctx.missingProfileFields.join(', ')}`);
@@ -294,9 +270,8 @@ async function getAgentResponse(content: string): Promise<AgentResponse> {
   return client.sendMessage(content);
 }
 
-/** Write a chat summary to Data Cloud when a conversation ends. */
 function writeConversationSummary(customerId: string, msgs: AgentMessage[]): void {
-  if (msgs.length < 2) return; // Need at least one exchange
+  if (msgs.length < 2) return;
 
   const topics = extractTopicsFromMessages(msgs);
   const summary: ChatSummary = {
@@ -315,20 +290,19 @@ function writeConversationSummary(customerId: string, msgs: AgentMessage[]): voi
 function extractTopicsFromMessages(msgs: AgentMessage[]): string[] {
   const allText = msgs.map((m) => m.content.toLowerCase()).join(' ');
   const topics: string[] = [];
-  if (allText.includes('resin') || allText.includes('polymer')) topics.push('resins');
-  if (allText.includes('nylon') || allText.includes('polyamide')) topics.push('nylon/polyamide');
-  if (allText.includes('polycarbonate') || allText.includes('pc ')) topics.push('polycarbonate');
-  if (allText.includes('polyethylene') || allText.includes('hdpe') || allText.includes('ldpe')) topics.push('polyethylene');
-  if (allText.includes('polypropylene') || allText.includes(' pp ')) topics.push('polypropylene');
-  if (allText.includes('abs')) topics.push('ABS');
-  if (allText.includes('sustainable') || allText.includes('recycled') || allText.includes('bio-based')) topics.push('sustainability');
+  if (allText.includes('turbine') || allText.includes('blade') || allText.includes('nacelle')) topics.push('wind turbines');
+  if (allText.includes('solar') || allText.includes('panel') || allText.includes('photovoltaic')) topics.push('solar');
+  if (allText.includes('inverter')) topics.push('inverters');
+  if (allText.includes('battery') || allText.includes('storage') || allText.includes('megapack')) topics.push('energy storage');
+  if (allText.includes('mount') || allText.includes('tracker') || allText.includes('rack')) topics.push('mounting/tracking');
+  if (allText.includes('transformer') || allText.includes('combiner')) topics.push('balance of system');
+  if (allText.includes('monitor') || allText.includes('scada')) topics.push('monitoring');
   if (allText.includes('order') || allText.includes('track') || allText.includes('shipment')) topics.push('order tracking');
   if (allText.includes('reorder') || allText.includes('replenish')) topics.push('reorder');
   if (allText.includes('quote') || allText.includes('pricing')) topics.push('quote/pricing');
-  if (allText.includes('sample')) topics.push('sample request');
-  if (allText.includes('spec') || allText.includes('tds') || allText.includes('data sheet')) topics.push('technical specs');
-  if (allText.includes('certif') || allText.includes('compliance') || allText.includes('fda')) topics.push('certifications/compliance');
-  if (allText.includes('injection') || allText.includes('extrusion') || allText.includes('blow mold')) topics.push('processing');
+  if (allText.includes('warranty') || allText.includes('maintenance')) topics.push('warranty/service');
+  if (allText.includes('certif') || allText.includes('compliance')) topics.push('certifications/compliance');
+  if (allText.includes('sustain') || allText.includes('carbon') || allText.includes('clean energy')) topics.push('sustainability');
   return topics.length ? topics : ['general inquiry'];
 }
 
@@ -348,27 +322,22 @@ export const ConversationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [isAgentTyping, setIsAgentTyping] = useState(false);
   const [isLoadingWelcome, setIsLoadingWelcome] = useState(false);
   const [suggestedActions, setSuggestedActions] = useState<string[]>([
-    'Browse resins',
-    'See sustainable materials',
+    'Browse solar panels',
+    'Show wind turbine components',
     'Request a quote',
   ]);
   const { processUIDirective, resetScene, getSceneSnapshot, restoreSceneSnapshot } = useScene();
-  const { customer, selectedPersonaId, _isRefreshRef, _onSessionReset } = useCustomer();
+  const { customer, selectedPersonaId, identifyByEmail, _isRefreshRef, _onSessionReset } = useCustomer();
+  const { showCaptures } = useActivityToast();
   const messagesRef = useRef<AgentMessage[]>([]);
   const suggestedActionsRef = useRef<string[]>([]);
   const prevCustomerIdRef = useRef<string | null>(null);
   const prevPersonaIdRef = useRef<string | null>(null);
   const sessionCacheRef = useRef<Map<string, SessionSnapshot>>(new Map());
 
-  // Keep refs in sync
-  useEffect(() => {
-    messagesRef.current = messages;
-  }, [messages]);
-  useEffect(() => {
-    suggestedActionsRef.current = suggestedActions;
-  }, [suggestedActions]);
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
+  useEffect(() => { suggestedActionsRef.current = suggestedActions; }, [suggestedActions]);
 
-  // Register for session reset notifications from CustomerContext
   useEffect(() => {
     return _onSessionReset((personaId: string) => {
       sessionCacheRef.current.delete(personaId);
@@ -376,17 +345,14 @@ export const ConversationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     });
   }, [_onSessionReset]);
 
-  // Write conversation summary when switching away from a customer
   useEffect(() => {
     const prevId = prevCustomerIdRef.current;
     prevCustomerIdRef.current = customer?.id || null;
-
     if (prevId && prevId !== customer?.id && messagesRef.current.length > 1) {
       writeConversationSummary(prevId, messagesRef.current);
     }
   }, [customer?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Helper: save current persona's state into the session cache
   const saveCurrentSession = useCallback((personaId: string) => {
     const client = getAgentforceClient();
     const agentSnap = client.getSessionSnapshot();
@@ -403,9 +369,7 @@ export const ConversationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     console.log('[session] Saved session for', personaId, `(${snapshot.messages.length} messages)`);
   }, [getSceneSnapshot]);
 
-  // When persona changes, reset conversation and trigger welcome
   useEffect(() => {
-    // If this is a profile refresh (not a persona switch), skip session reset
     if (_isRefreshRef.current) {
       console.log('[session] Profile refresh — keeping conversation intact');
       return;
@@ -414,36 +378,27 @@ export const ConversationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const prevPersonaId = prevPersonaIdRef.current;
     prevPersonaIdRef.current = selectedPersonaId;
 
-    // Save outgoing persona's session (if any)
     if (prevPersonaId && prevPersonaId !== selectedPersonaId && messagesRef.current.length > 0) {
       saveCurrentSession(prevPersonaId);
     }
 
     if (!customer) {
-      // Anonymous / no identity — reset to default starting page
       resetScene();
       setMessages([]);
-      setSuggestedActions([
-        'Browse resins',
-        'See sustainable materials',
-        'Request a quote',
-      ]);
+      setSuggestedActions(['Browse solar panels', 'Show wind turbine components', 'Request a quote']);
       setIsLoadingWelcome(false);
       return;
     }
 
-    // Check if we have a cached session for this persona
     const cached = selectedPersonaId ? sessionCacheRef.current.get(selectedPersonaId) : null;
 
     if (cached) {
-      // ── Restore cached session instantly ──
       console.log('[session] Restoring cached session for', selectedPersonaId, `(${cached.messages.length} messages)`);
       setMessages(cached.messages);
       setSuggestedActions(cached.suggestedActions);
       restoreSceneSnapshot(cached.sceneSnapshot);
       setIsLoadingWelcome(false);
 
-      // Restore agent client state
       if (useMockData && cached.mockSnapshot) {
         restoreMockAgentSnapshot(cached.mockSnapshot);
       } else if (cached.agentSessionId) {
@@ -453,7 +408,6 @@ export const ConversationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       return;
     }
 
-    // ── No cache — fresh session ──
     const sessionCtx = buildSessionContext(customer);
 
     if (useMockData) {
@@ -462,7 +416,6 @@ export const ConversationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       sessionInitialized = false;
     }
 
-    // Clear conversation, scene state, and trigger welcome
     resetScene();
     setMessages([]);
     setSuggestedActions([]);
@@ -472,7 +425,6 @@ export const ConversationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     const timer = setTimeout(async () => {
       try {
-        // Await session init so profile variables are available to the agent
         if (!useMockData) {
           try {
             await getAgentforceClient().initSession(sessionCtx);
@@ -483,10 +435,6 @@ export const ConversationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         }
         const response = await getAgentResponse(welcomeMsg);
 
-        // The real Agentforce agent may return CHANGE_SCENE or SHOW_PRODUCTS
-        // instead of WELCOME_SCENE on the first message. Since we know this IS
-        // the welcome flow, normalize it to WELCOME_SCENE so the welcome overlay
-        // renders. Preserve any products and scene context the agent provided.
         if (response.uiDirective && response.uiDirective.action !== 'WELCOME_SCENE') {
           const d = response.uiDirective;
           response.uiDirective = {
@@ -500,8 +448,6 @@ export const ConversationProvider: React.FC<{ children: React.ReactNode }> = ({ 
           };
         }
 
-        // For unknown customers (appended/anonymous), use the static default
-        // background instead of generating one — save generation for known users.
         if (sessionCtx.identityTier !== 'known' && response.uiDirective?.payload) {
           response.uiDirective.payload.sceneContext = {
             ...response.uiDirective.payload.sceneContext,
@@ -519,17 +465,20 @@ export const ConversationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         };
         setMessages([agentMessage]);
         let actions = response.suggestedActions || [];
-        // Build context-aware fallback suggestions if agent didn't provide any
         if (!actions.length && response.uiDirective?.action === 'WELCOME_SCENE') {
           if (sessionCtx.identityTier === 'known' && sessionCtx.recentPurchases?.length) {
-            actions = ['Track my orders', 'Reorder last purchase', "What's new in engineered resins?", 'Request a quote'];
+            actions = ['Track my orders', 'Reorder equipment', "What's new in solar?", 'Request a quote'];
           } else if (sessionCtx.identityTier === 'appended') {
-            actions = ['Browse our catalog', 'See engineered resins', 'Request a sample', 'Talk to a rep'];
+            actions = ['Browse our catalog', 'See solar panels', 'Request a sample', 'Talk to a rep'];
           } else {
-            actions = ['Browse resins', 'See sustainable materials', 'Request a quote'];
+            actions = ['Browse solar panels', 'Show wind turbine components', 'Request a quote'];
           }
         }
         setSuggestedActions(actions);
+
+        if (response.uiDirective?.payload?.captures?.length) {
+          showCaptures(response.uiDirective.payload.captures);
+        }
 
         if (response.uiDirective) {
           await processUIDirective(response.uiDirective);
@@ -558,14 +507,16 @@ export const ConversationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     try {
       const response = await getAgentResponse(content);
 
-      // If the agent returns a WELCOME_SCENE during a normal conversation
-      // (user typed a message), downgrade it to CHANGE_SCENE so products
-      // and background still render — just without the welcome overlay.
       if (response.uiDirective?.action === 'WELCOME_SCENE') {
         response.uiDirective = {
           ...response.uiDirective,
           action: (response.uiDirective.payload?.products?.length ? 'SHOW_PRODUCTS' : 'CHANGE_SCENE') as UIAction,
         };
+      }
+
+      // Handle IDENTIFY_CUSTOMER directive
+      if (response.uiDirective?.action === 'IDENTIFY_CUSTOMER' && response.uiDirective.payload?.customerEmail) {
+        await identifyByEmail(response.uiDirective.payload.customerEmail);
       }
 
       const agentMessage: AgentMessage = {
@@ -577,11 +528,14 @@ export const ConversationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       };
       setMessages((prev) => [...prev, agentMessage]);
       setSuggestedActions(response.suggestedActions || []);
-      // Stop typing indicator before processing directive so background
-      // transitions don't show a second typing bubble.
       setIsAgentTyping(false);
 
-      if (response.uiDirective) {
+      // Process captures for activity toasts
+      if (response.uiDirective?.payload?.captures?.length) {
+        showCaptures(response.uiDirective.payload.captures);
+      }
+
+      if (response.uiDirective && response.uiDirective.action !== 'IDENTIFY_CUSTOMER') {
         await processUIDirective(response.uiDirective);
       }
     } catch (error) {
@@ -595,15 +549,11 @@ export const ConversationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setMessages((prev) => [...prev, errorMessage]);
       setIsAgentTyping(false);
     }
-  }, [processUIDirective]);
+  }, [processUIDirective, identifyByEmail, showCaptures]);
 
   const clearConversation = useCallback(() => {
     setMessages([]);
-    setSuggestedActions([
-      'Browse resins',
-      'See sustainable materials',
-      'Request a quote',
-    ]);
+    setSuggestedActions(['Browse solar panels', 'Show wind turbine components', 'Request a quote']);
   }, []);
 
   return (

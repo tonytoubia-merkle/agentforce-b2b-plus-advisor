@@ -50,21 +50,24 @@ const findProduct = (id: string) => MOCK_PRODUCTS.find((p) => p.id === id);
 
 const B2B_SUGGESTED_ACTIONS = [
   'Track my orders',
-  'Reorder last purchase',
-  'Browse engineered resins',
+  'Reorder equipment',
+  'Browse wind turbine components',
   'Request a quote',
   'Check lead times',
 ];
 
 const DISCOVERY_ACTIONS = [
-  'Browse engineered resins',
-  'Show me commodity resins',
-  'Explore sustainable materials',
+  'Browse solar panels',
+  'Show wind turbine components',
+  'Explore energy storage',
   'Request a quote',
 ];
 
 function formatPrice(price: number): string {
-  return `$${price.toFixed(2)}/lb`;
+  if (price >= 1000) {
+    return `$${price.toLocaleString('en-US')}`;
+  }
+  return `$${price.toFixed(2)}`;
 }
 
 function getOpenOrders(customer: CustomerProfile | null): CustomerProfile['orders'] {
@@ -141,22 +144,10 @@ export function generateMockWelcome(customer: CustomerProfile): AgentResponse {
           welcomeMessage: `Welcome back, ${customer.name}.`,
           welcomeSubtext: subtext,
           sceneContext: { setting: 'neutral', generateBackground: false },
-          suggestedActions: [
-            'Track my orders',
-            'Reorder last purchase',
-            'Browse engineered resins',
-            'Request a quote',
-            'Check lead times',
-          ],
+          suggestedActions: B2B_SUGGESTED_ACTIONS,
         },
       },
-      suggestedActions: [
-        'Track my orders',
-        'Reorder last purchase',
-        'Browse engineered resins',
-        'Request a quote',
-        'Check lead times',
-      ],
+      suggestedActions: B2B_SUGGESTED_ACTIONS,
       confidence: 0.97,
     };
   }
@@ -166,27 +157,17 @@ export function generateMockWelcome(customer: CustomerProfile): AgentResponse {
     const companyNote = customer.company ? ` at ${customer.company}` : '';
     return {
       sessionId: 'mock-session',
-      message: `Welcome to Formerra Plus, ${customer.name}${companyNote}. I'm your materials concierge — let me help you find the right resins and compounds for your applications.`,
+      message: `Welcome to Formerra Plus, ${customer.name}${companyNote}. I'm your renewable energy advisor — let me help you find the right wind turbine components, solar equipment, and energy storage solutions for your projects.`,
       uiDirective: {
         action: 'WELCOME_SCENE' as UIAction,
         payload: {
           welcomeMessage: `Welcome, ${customer.name}.`,
           welcomeSubtext: 'Your Formerra Plus account is set up and ready. Let me help you place your first order.',
           sceneContext: { setting: 'office', generateBackground: false },
-          suggestedActions: [
-            'Browse engineered resins',
-            'Show me commodity resins',
-            'Explore sustainable materials',
-            'Request a quote',
-          ],
+          suggestedActions: DISCOVERY_ACTIONS,
         },
       },
-      suggestedActions: [
-        'Browse engineered resins',
-        'Show me commodity resins',
-        'Explore sustainable materials',
-        'Request a quote',
-      ],
+      suggestedActions: DISCOVERY_ACTIONS,
       confidence: 0.95,
     };
   }
@@ -194,31 +175,21 @@ export function generateMockWelcome(customer: CustomerProfile): AgentResponse {
   // Appended — resolved identity but no direct relationship
   if (tier === 'appended') {
     const industry = customer.appendedProfile?.industryVertical;
-    const industryHint = industry ? ` We work with leading ${industry.toLowerCase()} manufacturers to source the right materials.` : '';
+    const industryHint = industry ? ` We work with leading ${industry.toLowerCase()} companies to source the right equipment.` : '';
 
     return {
       sessionId: 'mock-session',
-      message: `Welcome to Formerra Plus — your materials distribution partner.${industryHint} How can I assist you today?`,
+      message: `Welcome to Formerra Plus — your renewable energy equipment partner.${industryHint} How can I assist you today?`,
       uiDirective: {
         action: 'WELCOME_SCENE' as UIAction,
         payload: {
           welcomeMessage: 'Welcome to Formerra Plus.',
-          welcomeSubtext: `Your single source for engineered resins, commodity polymers, and specialty compounds.${industryHint}`,
+          welcomeSubtext: `Your single source for wind, solar, and storage equipment.${industryHint}`,
           sceneContext: { setting: 'neutral', generateBackground: false },
-          suggestedActions: [
-            'Browse engineered resins',
-            'Show me commodity resins',
-            'Explore sustainable materials',
-            'Request a quote',
-          ],
+          suggestedActions: DISCOVERY_ACTIONS,
         },
       },
-      suggestedActions: [
-        'Browse engineered resins',
-        'Show me commodity resins',
-        'Explore sustainable materials',
-        'Request a quote',
-      ],
+      suggestedActions: DISCOVERY_ACTIONS,
       confidence: 0.90,
     };
   }
@@ -226,12 +197,12 @@ export function generateMockWelcome(customer: CustomerProfile): AgentResponse {
   // Anonymous
   return {
     sessionId: 'mock-session',
-    message: 'Welcome to Formerra Plus. I can help you find resins, elastomers, additives, and more. What are you looking for?',
+    message: 'Welcome to Formerra Plus. I can help you find wind turbine components, solar equipment, and energy storage solutions. What are you looking for?',
     uiDirective: {
       action: 'WELCOME_SCENE' as UIAction,
       payload: {
         welcomeMessage: 'Welcome to Formerra Plus.',
-        welcomeSubtext: 'Engineered resins, commodity polymers, elastomers, and specialty compounds — all from one distributor.',
+        welcomeSubtext: 'Wind turbine components, solar panels, inverters, and energy storage — all from one distributor.',
         sceneContext: { setting: 'neutral', generateBackground: false },
         suggestedActions: DISCOVERY_ACTIONS,
       },
@@ -283,17 +254,17 @@ function generateWelcomeResponse(): AgentResponse | null {
   if (tier === 'appended') {
     const industry = customerCtx.industry;
     const industryHint = industry
-      ? ` We partner with leading ${industry.toLowerCase()} manufacturers to source the right materials.`
+      ? ` We partner with leading ${industry.toLowerCase()} companies to source the right equipment.`
       : '';
 
     return {
       sessionId: 'mock-session',
-      message: `Welcome to Formerra Plus — your materials distribution partner.${industryHint} How can I assist you today?`,
+      message: `Welcome to Formerra Plus — your renewable energy equipment partner.${industryHint} How can I assist you today?`,
       uiDirective: {
         action: 'WELCOME_SCENE' as UIAction,
         payload: {
           welcomeMessage: 'Welcome to Formerra Plus.',
-          welcomeSubtext: `Your single source for engineered resins, commodity polymers, and specialty compounds.${industryHint}`,
+          welcomeSubtext: `Your single source for wind, solar, and storage equipment.${industryHint}`,
           sceneContext: { setting: 'neutral', generateBackground: false },
           suggestedActions: DISCOVERY_ACTIONS,
         },
@@ -306,12 +277,12 @@ function generateWelcomeResponse(): AgentResponse | null {
   // Anonymous
   return {
     sessionId: 'mock-session',
-    message: 'Welcome to Formerra Plus. I can help you find resins, elastomers, additives, and more. What are you looking for?',
+    message: 'Welcome to Formerra Plus. I can help you find wind turbine components, solar equipment, and energy storage solutions. What are you looking for?',
     uiDirective: {
       action: 'WELCOME_SCENE' as UIAction,
       payload: {
         welcomeMessage: 'Welcome to Formerra Plus.',
-        welcomeSubtext: 'Engineered resins, commodity polymers, elastomers, and specialty compounds — all from one distributor.',
+        welcomeSubtext: 'Wind turbine components, solar panels, inverters, and energy storage — all from one distributor.',
         sceneContext: { setting: 'neutral', generateBackground: false },
         suggestedActions: DISCOVERY_ACTIONS,
       },
@@ -344,18 +315,18 @@ const RESPONSE_PATTERNS: {
                 trackingNumber: 'FX-7829104562',
                 estimatedDelivery: '2024-02-08',
                 lineItems: [
-                  { productName: 'LEXAN™ Polycarbonate Resin 141R', quantity: 5000 },
-                  { productName: 'Santoprene™ TPV 201-73', quantity: 2000 },
+                  { productName: 'Vestas V162 Turbine Blade', quantity: 3 },
+                  { productName: 'SMA Sunny Tripower CORE2', quantity: 10 },
                 ],
               },
             },
           },
-          suggestedActions: ['Track order FX-7829104562', 'View all open orders', 'Reorder last purchase'],
+          suggestedActions: ['Track order FX-7829104562', 'View all open orders', 'Reorder equipment'],
         };
       }
       return {
         message: 'I can look up your order status. Could you provide your PO number or order ID?',
-        suggestedActions: ['View all open orders', 'Browse products', 'Request a quote'],
+        suggestedActions: ['View all open orders', 'Browse equipment', 'Request a quote'],
       };
     },
   },
@@ -372,7 +343,7 @@ const RESPONSE_PATTERNS: {
         if (products.length) {
           state.lastShownProductIds = products.map((p) => p.id);
           return {
-            message: `Based on your recent orders, here are your most-purchased materials. Shall I prepare a reorder at current pricing?\n\n${products.map((p) => `- **${p.name}** — ${formatPrice(p.price)} (${p.attributes.minOrderQty} min)`).join('\n')}`,
+            message: `Based on your recent orders, here are your most-purchased items. Shall I prepare a reorder at current pricing?\n\n${products.map((p) => `- **${p.name}** — ${formatPrice(p.price)} (${p.attributes.minOrderQty} min)`).join('\n')}`,
             uiDirective: {
               action: 'SHOW_PRODUCTS' as UIAction,
               payload: {
@@ -385,22 +356,62 @@ const RESPONSE_PATTERNS: {
         }
       }
       return {
-        message: "I'd be happy to help you reorder. What materials do you need to restock?",
-        suggestedActions: ['Browse engineered resins', 'Show me commodity resins', 'Check my order history'],
+        message: "I'd be happy to help you reorder. What equipment do you need to restock?",
+        suggestedActions: ['Browse solar panels', 'Show wind turbine components', 'Check my order history'],
       };
     },
   },
 
-  // Product / material queries — specific materials
+  // Wind turbine components
   {
-    pattern: /nylon|polyamide|pa6|pa66|ultramid/i,
+    pattern: /turbine|blade|nacelle|tower|wind/i,
     response: () => {
-      const products = MOCK_PRODUCTS.filter(
-        (p) => p.name.toLowerCase().includes('nylon') || p.name.toLowerCase().includes('ultramid')
+      const products = MOCK_PRODUCTS.filter((p) => p.category === 'wind-turbine');
+      state.lastShownProductIds = products.map((p) => p.id);
+      return {
+        message: `Here are our wind turbine components:\n\n${products.map((p) => `- **${p.name}** (${p.brand}) — ${formatPrice(p.price)}: ${p.shortDescription}`).join('\n')}\n\nAll components are DNV-certified and available for utility-scale projects. Need a specific turbine platform or MW class?`,
+        uiDirective: {
+          action: 'SHOW_PRODUCTS' as UIAction,
+          payload: {
+            products,
+            sceneContext: { setting: 'warehouse', generateBackground: false },
+          },
+        },
+        suggestedActions: ['Request a quote', 'Check lead times', 'Show me solar panels'],
+      };
+    },
+  },
+
+  // Solar panels
+  {
+    pattern: /solar|panel|photovoltaic|pv\b|module/i,
+    response: () => {
+      const products = MOCK_PRODUCTS.filter((p) => p.category === 'solar-panel');
+      state.lastShownProductIds = products.map((p) => p.id);
+      return {
+        message: `Here are our solar panel options:\n\n${products.map((p) => `- **${p.name}** (${p.brand}) — ${formatPrice(p.price)}: ${p.shortDescription}`).join('\n')}\n\nAll panels are IEC 61215 and UL 1703 certified. Available in pallet or container quantities.`,
+        uiDirective: {
+          action: 'SHOW_PRODUCTS' as UIAction,
+          payload: {
+            products,
+            sceneContext: { setting: 'warehouse', generateBackground: false },
+          },
+        },
+        suggestedActions: ['Request a quote', 'Show me inverters', 'Check lead times'],
+      };
+    },
+  },
+
+  // Inverters
+  {
+    pattern: /inverter|micro.?inverter|string.?inverter/i,
+    response: () => {
+      const products = MOCK_PRODUCTS.filter((p) =>
+        p.id === 'solar-inverter-sma' || p.id === 'solar-micro-enphase'
       );
       state.lastShownProductIds = products.map((p) => p.id);
       return {
-        message: `Here's our nylon offering:\n\n${products.map((p) => `- **${p.name}** (${p.brand}) — ${formatPrice(p.price)}: ${p.shortDescription}`).join('\n')}\n\nAll nylons ship in 55 lb boxes with 2,000 lb minimums. Need a specific grade or glass-fill percentage?`,
+        message: `Here are our inverter solutions:\n\n${products.map((p) => `- **${p.name}** (${p.brand}) — ${formatPrice(p.price)}: ${p.shortDescription}`).join('\n')}\n\nWe carry both string inverters for utility-scale and microinverters for commercial rooftop applications.`,
         uiDirective: {
           action: 'SHOW_PRODUCTS' as UIAction,
           payload: {
@@ -408,130 +419,21 @@ const RESPONSE_PATTERNS: {
             sceneContext: { setting: 'warehouse', generateBackground: false },
           },
         },
-        suggestedActions: ['Request a quote', 'Show me the TDS', 'What glass-fill options are available?'],
-      };
-    },
-  },
-  {
-    pattern: /polycarb|lexan|pc\b/i,
-    response: () => {
-      const product = findProduct('resin-pc-lexan')!;
-      state.currentProductId = product.id;
-      return {
-        message: `Our go-to polycarbonate is **${product.name}** (${product.brand}) at ${formatPrice(product.price)}.\n\n${product.description}\n\nMinimum order: ${product.attributes.minOrderQty}. Lead time: ${product.attributes.leadTimeDays} days. Certifications: ${product.attributes.certifications?.join(', ')}.`,
-        uiDirective: {
-          action: 'SHOW_PRODUCT' as UIAction,
-          payload: {
-            products: [product],
-            sceneContext: { setting: 'warehouse', generateBackground: false },
-          },
-        },
-        suggestedActions: ['Request a quote', 'Check availability', 'Show me PBT alternatives'],
-      };
-    },
-  },
-  {
-    pattern: /peek|victrex|high.?perform/i,
-    response: () => {
-      const product = findProduct('resin-peek-victrex')!;
-      state.currentProductId = product.id;
-      return {
-        message: `For high-performance applications, we carry **${product.name}** at ${formatPrice(product.price)}.\n\n${product.description}\n\nMinimum order: ${product.attributes.minOrderQty}. Lead time: ${product.attributes.leadTimeDays} days.`,
-        uiDirective: {
-          action: 'SHOW_PRODUCT' as UIAction,
-          payload: {
-            products: [product],
-            sceneContext: { setting: 'neutral', generateBackground: false },
-          },
-        },
-        suggestedActions: ['Request a quote', 'What certifications does it carry?', 'Show me NORYL PPO as an alternative'],
-      };
-    },
-  },
-  {
-    pattern: /polypropylene|pp\b|profax/i,
-    response: () => {
-      const product = findProduct('resin-pp-profax')!;
-      state.currentProductId = product.id;
-      return {
-        message: `For polypropylene, we recommend **${product.name}** (${product.brand}) at ${formatPrice(product.price)}.\n\n${product.shortDescription}. Min order: ${product.attributes.minOrderQty}. Lead time: ${product.attributes.leadTimeDays} days. Ships in ${product.attributes.packagingSize}.`,
-        uiDirective: {
-          action: 'SHOW_PRODUCT' as UIAction,
-          payload: {
-            products: [product],
-            sceneContext: { setting: 'warehouse', generateBackground: false },
-          },
-        },
-        suggestedActions: ['Request a quote', 'Check current availability', 'Show me HDPE options'],
-      };
-    },
-  },
-  {
-    pattern: /hdpe|polyethylene|marlex/i,
-    response: () => {
-      const product = findProduct('resin-hdpe-marlex')!;
-      state.currentProductId = product.id;
-      return {
-        message: `Our HDPE offering: **${product.name}** (${product.brand}) at ${formatPrice(product.price)}.\n\n${product.shortDescription}. Min order: ${product.attributes.minOrderQty}. Lead time: ${product.attributes.leadTimeDays} days.`,
-        uiDirective: {
-          action: 'SHOW_PRODUCT' as UIAction,
-          payload: {
-            products: [product],
-            sceneContext: { setting: 'warehouse', generateBackground: false },
-          },
-        },
-        suggestedActions: ['Request a quote', 'Show me PP alternatives', 'What blow-molding grades do you have?'],
-      };
-    },
-  },
-  {
-    pattern: /abs|cycolac/i,
-    response: () => {
-      const product = findProduct('resin-abs-cycolac')!;
-      state.currentProductId = product.id;
-      return {
-        message: `For ABS, we carry **${product.name}** (${product.brand}) at ${formatPrice(product.price)}.\n\n${product.shortDescription}. Min order: ${product.attributes.minOrderQty}. Lead time: ${product.attributes.leadTimeDays} days.`,
-        uiDirective: {
-          action: 'SHOW_PRODUCT' as UIAction,
-          payload: {
-            products: [product],
-            sceneContext: { setting: 'warehouse', generateBackground: false },
-          },
-        },
-        suggestedActions: ['Request a quote', 'Check availability', 'Show me polycarbonate instead'],
+        suggestedActions: ['Request a quote', 'Show me solar panels', 'Compare string vs micro inverters'],
       };
     },
   },
 
-  // General product/resin/material browsing
+  // Mounting systems
   {
-    pattern: /product|resin|material|polymer|plastic|catalog|browse/i,
+    pattern: /mount|rack|rail|track(er|ing)/i,
     response: () => {
-      const engineered = MOCK_PRODUCTS.filter((p) => p.category === 'engineered-resin');
-      state.lastShownProductIds = engineered.map((p) => p.id);
-      state.shownCategories.push('engineered-resin');
-      return {
-        message: `Here are our engineered resins — our most popular category:\n\n${engineered.map((p) => `- **${p.name}** (${p.brand}) — ${formatPrice(p.price)}: ${p.shortDescription}`).join('\n')}\n\nWe also carry commodity resins, elastomers, additives, and sustainable materials.`,
-        uiDirective: {
-          action: 'SHOW_PRODUCTS' as UIAction,
-          payload: {
-            products: engineered,
-            sceneContext: { setting: 'warehouse', generateBackground: false },
-          },
-        },
-        suggestedActions: ['Show me commodity resins', 'Show me elastomers', 'Explore sustainable materials', 'Request a quote'],
-      };
-    },
-  },
-
-  // Elastomers / TPE / TPU / TPV
-  {
-    pattern: /elastomer|tpe|tpu|tpv|rubber|santoprene|estane|flexible/i,
-    response: () => {
-      const products = MOCK_PRODUCTS.filter((p) => p.category === 'elastomer');
+      const products = MOCK_PRODUCTS.filter((p) =>
+        p.id === 'mount-rail-unirac' || p.id === 'mount-tracker-nextracker'
+      );
       state.lastShownProductIds = products.map((p) => p.id);
       return {
-        message: `Here are our elastomer offerings:\n\n${products.map((p) => `- **${p.name}** (${p.brand}) — ${formatPrice(p.price)}: ${p.shortDescription}`).join('\n')}\n\nBoth are processable on standard injection molding and extrusion equipment.`,
+        message: `Here are our mounting and racking solutions:\n\n${products.map((p) => `- **${p.name}** (${p.brand}) — ${formatPrice(p.price)}: ${p.shortDescription}`).join('\n')}\n\nFixed-tilt and single-axis tracker options available for ground-mount and rooftop installations.`,
         uiDirective: {
           action: 'SHOW_PRODUCTS' as UIAction,
           payload: {
@@ -539,7 +441,103 @@ const RESPONSE_PATTERNS: {
             sceneContext: { setting: 'warehouse', generateBackground: false },
           },
         },
-        suggestedActions: ['Request a quote on Santoprene', 'Tell me about Estane TPU', 'Compare the two'],
+        suggestedActions: ['Request a quote', 'Compare fixed vs tracker', 'Show me solar panels'],
+      };
+    },
+  },
+
+  // Energy storage
+  {
+    pattern: /batter|storage|ess\b|megapack|bess/i,
+    response: () => {
+      const products = MOCK_PRODUCTS.filter((p) =>
+        p.id === 'bess-tesla-megapack' || p.id === 'bess-byd-cube'
+      );
+      state.lastShownProductIds = products.map((p) => p.id);
+      return {
+        message: `Here are our energy storage systems:\n\n${products.map((p) => `- **${p.name}** (${p.brand}) — ${formatPrice(p.price)}: ${p.shortDescription}`).join('\n')}\n\nBoth systems support grid-scale deployments with integrated battery management and thermal controls.`,
+        uiDirective: {
+          action: 'SHOW_PRODUCTS' as UIAction,
+          payload: {
+            products,
+            sceneContext: { setting: 'warehouse', generateBackground: false },
+          },
+        },
+        suggestedActions: ['Request a quote', 'Compare storage options', 'Check lead times'],
+      };
+    },
+  },
+
+  // Balance-of-system
+  {
+    pattern: /transformer|combiner|junction|bos\b|balance/i,
+    response: () => {
+      const products = MOCK_PRODUCTS.filter((p) =>
+        p.id === 'bos-transformer-abb' || p.id === 'bos-combiner-shoals' || p.id === 'bos-monitoring-also'
+      );
+      state.lastShownProductIds = products.map((p) => p.id);
+      return {
+        message: `Here are our balance-of-system components:\n\n${products.map((p) => `- **${p.name}** (${p.brand}) — ${formatPrice(p.price)}: ${p.shortDescription}`).join('\n')}\n\nThese components complete your installation from combiner boxes to step-up transformers and monitoring.`,
+        uiDirective: {
+          action: 'SHOW_PRODUCTS' as UIAction,
+          payload: {
+            products,
+            sceneContext: { setting: 'warehouse', generateBackground: false },
+          },
+        },
+        suggestedActions: ['Request a quote', 'Show me inverters', 'Check lead times'],
+      };
+    },
+  },
+
+  // Monitoring / SCADA
+  {
+    pattern: /monitor|scada|performance|powertrack/i,
+    response: () => {
+      const product = findProduct('bos-monitoring-also');
+      if (product) {
+        state.currentProductId = product.id;
+        return {
+          message: `For site monitoring, we carry **${product.name}** (${product.brand}) at ${formatPrice(product.price)}.\n\n${product.shortDescription}\n\nIntegrates with all major inverter brands and supports SCADA protocols for utility-scale fleet management.`,
+          uiDirective: {
+            action: 'SHOW_PRODUCT' as UIAction,
+            payload: {
+              products: [product],
+              sceneContext: { setting: 'neutral', generateBackground: false },
+            },
+          },
+          suggestedActions: ['Request a quote', 'Show me inverters', 'Browse all equipment'],
+        };
+      }
+      return {
+        message: 'We carry monitoring and SCADA solutions for solar, wind, and storage sites. What size installation are you monitoring?',
+        suggestedActions: ['Browse equipment', 'Request a quote'],
+      };
+    },
+  },
+
+  // General product / equipment browsing
+  {
+    pattern: /product|equipment|component|catalog|browse/i,
+    response: () => {
+      const popular = [
+        findProduct('solar-panel-jinko'),
+        findProduct('wt-blade-vestas'),
+        findProduct('bess-tesla-megapack'),
+        findProduct('solar-inverter-sma'),
+        findProduct('mount-tracker-nextracker'),
+      ].filter(Boolean) as NonNullable<ReturnType<typeof findProduct>>[];
+      state.lastShownProductIds = popular.map((p) => p.id);
+      return {
+        message: `Here are some of our most popular products across categories:\n\n${popular.map((p) => `- **${p.name}** (${p.brand}) — ${formatPrice(p.price)}: ${p.shortDescription}`).join('\n')}\n\nWe also carry inverters, mounting systems, balance-of-system components, and monitoring solutions.`,
+        uiDirective: {
+          action: 'SHOW_PRODUCTS' as UIAction,
+          payload: {
+            products: popular,
+            sceneContext: { setting: 'warehouse', generateBackground: false },
+          },
+        },
+        suggestedActions: ['Show wind turbine components', 'Browse solar panels', 'Explore energy storage', 'Request a quote'],
       };
     },
   },
@@ -565,12 +563,12 @@ const RESPONSE_PATTERNS: {
         }
       }
       const popular = [
-        findProduct('resin-pc-lexan')!,
-        findProduct('resin-pp-profax')!,
-        findProduct('resin-nylon-ultramid')!,
-      ];
+        findProduct('solar-panel-jinko'),
+        findProduct('wt-blade-vestas'),
+        findProduct('bess-tesla-megapack'),
+      ].filter(Boolean) as NonNullable<ReturnType<typeof findProduct>>[];
       return {
-        message: `Here are current list prices on our most popular resins:\n\n${popular.map((p) => `- **${p.name}** — ${formatPrice(p.price)} (min ${p.attributes.minOrderQty})`).join('\n')}\n\nThese are list prices. Contract and volume pricing is available — I can generate a formal quote.`,
+        message: `Here are current list prices on some of our most popular equipment:\n\n${popular.map((p) => `- **${p.name}** — ${formatPrice(p.price)} (min ${p.attributes.minOrderQty})`).join('\n')}\n\nThese are list prices. Contract and volume pricing is available — I can generate a formal quote.`,
         uiDirective: {
           action: 'SHOW_PRODUCTS' as UIAction,
           payload: {
@@ -608,89 +606,31 @@ const RESPONSE_PATTERNS: {
     },
   },
 
-  // Sustainability / recycled / bio
+  // Sustainability / clean energy
   {
-    pattern: /sustainab|recycled|bio|eco|green|pcr|rpet|pla|compost|circular/i,
+    pattern: /sustainab|carbon|green|clean/i,
     response: () => {
-      const products = MOCK_PRODUCTS.filter(
-        (p) => p.category === 'recycled-resin' || p.category === 'sustainable-resin'
-      );
-      state.lastShownProductIds = products.map((p) => p.id);
+      const popular = [
+        findProduct('solar-panel-longi'),
+        findProduct('bess-byd-cube'),
+        findProduct('wt-blade-vestas'),
+      ].filter(Boolean) as NonNullable<ReturnType<typeof findProduct>>[];
+      state.lastShownProductIds = popular.map((p) => p.id);
       return {
-        message: `Here are our sustainable material options:\n\n${products.map((p) => `- **${p.name}** (${p.brand}) — ${formatPrice(p.price)}: ${p.shortDescription} [${p.attributes.sustainableContent}]`).join('\n')}\n\nBoth help meet corporate sustainability goals and regulatory requirements.`,
+        message: `Every product we carry contributes to the clean energy transition. Our full catalog spans wind, solar, and energy storage — all designed to reduce carbon emissions and accelerate decarbonization.\n\n${popular.map((p) => `- **${p.name}** (${p.brand}) — ${formatPrice(p.price)}: ${p.shortDescription}`).join('\n')}\n\nNeed help calculating the carbon offset for your project?`,
         uiDirective: {
           action: 'SHOW_PRODUCTS' as UIAction,
           payload: {
-            products,
+            products: popular,
             sceneContext: { setting: 'neutral', generateBackground: false },
           },
         },
-        suggestedActions: ['Request a sustainability audit', 'Compare with virgin resins', 'Request a quote'],
+        suggestedActions: ['Browse solar panels', 'Show wind turbine components', 'Explore energy storage', 'Request a quote'],
       };
     },
   },
 
-  // Purge / color change
-  {
-    pattern: /purge|color change|changeover|scrap reduc/i,
-    response: () => {
-      const product = findProduct('purge-compound-ultra')!;
-      state.currentProductId = product.id;
-      return {
-        message: `For color and material changes, our **${product.name}** reduces downtime by up to 80%.\n\n${formatPrice(product.price)} — min order ${product.attributes.minOrderQty}. FDA-approved for food-contact equipment. Lead time: ${product.attributes.leadTimeDays} days.\n\nCompatible with injection molding, extrusion, and blow molding equipment.`,
-        uiDirective: {
-          action: 'SHOW_PRODUCT' as UIAction,
-          payload: {
-            products: [product],
-            sceneContext: { setting: 'warehouse', generateBackground: false },
-          },
-        },
-        suggestedActions: ['Request a sample', 'Request a quote', 'How does it compare to my current purge?'],
-      };
-    },
-  },
-
-  // Additives / UV / stabilizer
-  {
-    pattern: /additive|uv|stabiliz|antioxidant|flame retard/i,
-    response: () => {
-      const product = findProduct('additive-uv-stabilizer')!;
-      state.currentProductId = product.id;
-      return {
-        message: `We carry specialty additives. Our **${product.name}** is a benzotriazole UV absorber at ${formatPrice(product.price)}.\n\n${product.shortDescription}. Effective in PE, PP, PVC, PET, and engineering resins. Min order: ${product.attributes.minOrderQty}.`,
-        uiDirective: {
-          action: 'SHOW_PRODUCT' as UIAction,
-          payload: {
-            products: [product],
-            sceneContext: { setting: 'neutral', generateBackground: false },
-          },
-        },
-        suggestedActions: ['Request a quote', 'What other additives do you carry?', 'Show me resins for outdoor use'],
-      };
-    },
-  },
-
-  // Color / masterbatch
-  {
-    pattern: /color|masterbatch|pigment|custom color|match/i,
-    response: () => {
-      const products = MOCK_PRODUCTS.filter((p) => p.category === 'color-masterbatch');
-      state.lastShownProductIds = products.map((p) => p.id);
-      return {
-        message: `Here are our color solutions:\n\n${products.map((p) => `- **${p.name}** — ${formatPrice(p.price)}: ${p.shortDescription}`).join('\n')}\n\nOur Custom Match Program includes lab matching, spectrophotometric approval, and production-scale delivery.`,
-        uiDirective: {
-          action: 'SHOW_PRODUCTS' as UIAction,
-          payload: {
-            products,
-            sceneContext: { setting: 'neutral', generateBackground: false },
-          },
-        },
-        suggestedActions: ['Start a custom color match', 'Request a quote', 'What carriers are available?'],
-      };
-    },
-  },
-
-  // Lead times
+  // Lead times / availability
   {
     pattern: /lead time|availability|in stock|when can|how (soon|fast|long)/i,
     response: () => {
@@ -704,15 +644,15 @@ const RESPONSE_PATTERNS: {
         }
       }
       return {
-        message: 'Most commodity resins ship within 3-5 business days. Engineered resins are typically 5-10 days. Specialty materials like PEEK may require 10-14 days. Which material are you interested in?',
-        suggestedActions: ['Check a specific product', 'Browse engineered resins', 'Show me what ships fastest'],
+        message: 'Solar panels and inverters typically ship within 2-4 weeks. Wind turbine components are 8-16 weeks depending on configuration. Energy storage systems are 12-20 weeks for utility-scale. Which equipment are you interested in?',
+        suggestedActions: ['Check a specific product', 'Browse solar panels', 'Show me what ships fastest'],
       };
     },
   },
 
-  // Technical questions
+  // Certifications / technical standards
   {
-    pattern: /certif|fda|ul\b|rohs|iso|astm|spec|technical|tds|data sheet/i,
+    pattern: /certif|iec|ul\b|dnv|ieee|nec/i,
     response: () => {
       if (state.currentProductId) {
         const product = findProduct(state.currentProductId);
@@ -724,36 +664,28 @@ const RESPONSE_PATTERNS: {
         }
       }
       return {
-        message: 'I can pull up technical data sheets and certifications for any product in our catalog. Which material do you need specs for?',
-        suggestedActions: ['Show me LEXAN PC specs', 'Nylon certifications', 'FDA-compliant materials'],
+        message: 'All our equipment meets industry certification standards including IEC, UL, DNV, IEEE, and NEC requirements. Which product do you need certification details for?',
+        suggestedActions: ['Show me solar panel certifications', 'Wind turbine DNV specs', 'Inverter UL listing'],
       };
     },
   },
 
-  // Processing method questions
+  // Warranty / maintenance / service
   {
-    pattern: /injection.?mold|extrusion|blow.?mold|thermoform|rotational|3d print/i,
+    pattern: /warranty|maintenance|service|support/i,
     response: () => {
-      const method = (/injection/i.test('') ? 'injection-molding' :
-        /extrusion/i.test('') ? 'extrusion' :
-        /blow/i.test('') ? 'blow-molding' :
-        /thermoform/i.test('') ? 'thermoforming' :
-        /rotational/i.test('') ? 'rotational-molding' : 'injection-molding') as string;
-      // Show all products compatible with injection molding as default
-      const compatible = MOCK_PRODUCTS.filter(
-        (p) => p.attributes.processingMethod?.includes('injection-molding')
-      );
-      state.lastShownProductIds = compatible.map((p) => p.id);
+      if (state.currentProductId) {
+        const product = findProduct(state.currentProductId);
+        if (product) {
+          return {
+            message: `**${product.name}** comes with the manufacturer's standard warranty. Extended warranty and O&M service contracts are available through our service partners.\n\nI can connect you with our technical support team for warranty claims or maintenance scheduling.`,
+            suggestedActions: ['Request warranty details', 'Schedule maintenance', 'Connect me with support'],
+          };
+        }
+      }
       return {
-        message: `Here are materials compatible with injection molding:\n\n${compatible.slice(0, 5).map((p) => `- **${p.name}** — ${formatPrice(p.price)}`).join('\n')}\n\nI can filter by any processing method. What application are you designing for?`,
-        uiDirective: {
-          action: 'SHOW_PRODUCTS' as UIAction,
-          payload: {
-            products: compatible.slice(0, 5),
-            sceneContext: { setting: 'warehouse', generateBackground: false },
-          },
-        },
-        suggestedActions: ['Filter by extrusion', 'Filter by blow molding', 'Request a quote'],
+        message: 'We offer comprehensive warranty support and can arrange O&M service contracts for all equipment we sell. Solar panels typically carry 25-year performance warranties, inverters 10-15 years, and wind components 5-10 years. What equipment do you need warranty info for?',
+        suggestedActions: ['Solar panel warranties', 'Inverter service plans', 'Wind turbine maintenance'],
       };
     },
   },
@@ -765,7 +697,7 @@ const RESPONSE_PATTERNS: {
       const welcome = generateWelcomeResponse();
       if (welcome) return welcome;
       return {
-        message: 'Hello! Welcome to Formerra Plus. I can help you source resins, elastomers, additives, and specialty compounds. What are you looking for?',
+        message: 'Hello! Welcome to Formerra Plus. I can help you source wind turbine components, solar equipment, and energy storage solutions. What are you looking for?',
         suggestedActions: DISCOVERY_ACTIONS,
       };
     },
@@ -775,7 +707,7 @@ const RESPONSE_PATTERNS: {
   {
     pattern: /thank|thanks|bye|goodbye/i,
     response: () => ({
-      message: 'You\'re welcome. Don\'t hesitate to reach out when you need materials support. Have a productive day.',
+      message: 'You\'re welcome. Don\'t hesitate to reach out when you need renewable energy equipment support. Have a productive day.',
       uiDirective: {
         action: 'RESET_SCENE' as UIAction,
         payload: {},
@@ -788,8 +720,8 @@ const RESPONSE_PATTERNS: {
   {
     pattern: /help|what can you|what do you/i,
     response: () => ({
-      message: 'I can help you with:\n\n- **Product sourcing** — engineered resins, commodity polymers, elastomers, additives\n- **Order management** — track shipments, reorder materials, check lead times\n- **Pricing & quotes** — current pricing, volume discounts, formal quotes\n- **Technical support** — material data sheets, certifications, processing guidance\n- **Account management** — tier status, order history, saved preferences\n\nWhat would you like to start with?',
-      suggestedActions: ['Browse products', 'Track my orders', 'Request a quote', 'Check my account'],
+      message: 'I can help you with:\n\n- **Equipment sourcing** — wind turbine components, solar panels, inverters, energy storage, balance-of-system\n- **Order management** — track shipments, reorder equipment, check lead times\n- **Pricing & quotes** — current pricing, volume discounts, formal quotes\n- **Technical support** — certifications, data sheets, warranty information\n- **Account management** — tier status, order history, saved preferences\n\nWhat would you like to start with?',
+      suggestedActions: ['Browse equipment', 'Track my orders', 'Request a quote', 'Check my account'],
     }),
   },
 ];
@@ -825,7 +757,7 @@ export const generateMockResponse = async (
 
   return {
     sessionId: 'mock-session',
-    message: "I can help you source the right materials. I carry engineered resins, commodity polymers, elastomers, additives, and more. What application or material type are you looking for?",
+    message: "I can help you source the right renewable energy equipment. We carry wind turbine components, solar panels, inverters, energy storage, and balance-of-system equipment. What project are you working on?",
     suggestedActions: DISCOVERY_ACTIONS,
     confidence: 0.80,
   };

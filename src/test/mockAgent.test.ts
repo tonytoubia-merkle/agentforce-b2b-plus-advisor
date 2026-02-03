@@ -2,17 +2,17 @@ import { describe, it, expect } from 'vitest';
 import { generateMockResponse } from '@/services/mock/mockAgent';
 
 describe('generateMockResponse', () => {
-  it('returns polycarbonate product for PC query', async () => {
-    const response = await generateMockResponse('I need polycarbonate');
-    expect(response.uiDirective?.action).toBe('SHOW_PRODUCT');
-    expect(response.uiDirective?.payload.products).toHaveLength(1);
-    expect(response.uiDirective?.payload.products![0].id).toBe('resin-pc-lexan');
+  it('returns solar panel product for solar query', async () => {
+    const response = await generateMockResponse('I need solar panels');
+    expect(response.uiDirective?.action).toBe('SHOW_PRODUCTS');
+    expect(response.uiDirective?.payload.products!.length).toBeGreaterThan(0);
+    expect(response.uiDirective?.payload.products![0].category).toBe('solar-panel');
   });
 
-  it('returns engineered resins for product browsing query', async () => {
-    const response = await generateMockResponse('show me resins');
+  it('returns wind turbine products for turbine query', async () => {
+    const response = await generateMockResponse('show me wind turbine components');
     expect(response.uiDirective?.action).toBe('SHOW_PRODUCTS');
-    expect(response.uiDirective?.payload.products!.length).toBeGreaterThan(1);
+    expect(response.uiDirective?.payload.products!.length).toBeGreaterThan(0);
   });
 
   it('returns order tracking response for order query', async () => {
@@ -21,26 +21,26 @@ describe('generateMockResponse', () => {
     expect(response.suggestedActions!.length).toBeGreaterThan(0);
   });
 
-  it('returns nylon products for nylon query', async () => {
-    const response = await generateMockResponse('show me nylon');
+  it('returns inverter products for inverter query', async () => {
+    const response = await generateMockResponse('show me inverters');
     expect(response.uiDirective?.action).toBe('SHOW_PRODUCTS');
-    expect(response.uiDirective?.payload.products!.every((p) => p.category === 'high-performance-polymer' || p.name.toLowerCase().includes('nylon') || p.name.toLowerCase().includes('ultramid'))).toBe(true);
+    expect(response.uiDirective?.payload.products!.every((p) => p.category === 'inverter')).toBe(true);
   });
 
-  it('returns PEEK for high performance query', async () => {
-    const response = await generateMockResponse('I need PEEK');
-    expect(response.uiDirective?.action).toBe('SHOW_PRODUCT');
-    expect(response.uiDirective?.payload.products![0].id).toBe('resin-peek-victrex');
+  it('returns energy storage for battery query', async () => {
+    const response = await generateMockResponse('I need battery storage');
+    expect(response.uiDirective?.action).toBe('SHOW_PRODUCTS');
+    expect(response.uiDirective?.payload.products![0].category).toBe('energy-storage');
   });
 
-  it('returns sustainable materials for sustainability query', async () => {
-    const response = await generateMockResponse('show me sustainable materials');
+  it('returns mounting systems for mounting query', async () => {
+    const response = await generateMockResponse('show me mounting rails');
     expect(response.uiDirective?.action).toBe('SHOW_PRODUCTS');
     expect(response.uiDirective?.payload.products!.length).toBeGreaterThan(0);
   });
 
-  it('returns elastomers for TPV query', async () => {
-    const response = await generateMockResponse('show me elastomers');
+  it('returns balance of system for transformer query', async () => {
+    const response = await generateMockResponse('show me transformers');
     expect(response.uiDirective?.action).toBe('SHOW_PRODUCTS');
     expect(response.uiDirective?.payload.products!.length).toBeGreaterThan(0);
   });

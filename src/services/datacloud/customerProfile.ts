@@ -143,7 +143,6 @@ export class DataCloudCustomerService {
         country: raw.MailingCountry || '',
         isDefault: true,
       }] : [],
-      travelPreferences: undefined,
     };
   }
 

@@ -23,12 +23,21 @@ export type UIAction =
   | 'CONFIRM_ORDER'
   | 'RESET_SCENE'
   | 'SHOW_ORDER_STATUS'
-  | 'SHOW_ACCOUNT_SUMMARY';
+  | 'SHOW_ACCOUNT_SUMMARY'
+  | 'IDENTIFY_CUSTOMER';
+
+export interface CaptureNotification {
+  type: 'contact_created' | 'meaningful_event' | 'profile_enrichment';
+  label: string;
+  detail?: string;
+}
 
 export interface UIDirectivePayload {
   products?: Product[];
   welcomeMessage?: string;
   welcomeSubtext?: string;
+  customerEmail?: string;
+  captures?: CaptureNotification[];
   sceneContext?: {
     setting: SceneSetting;
     mood?: string;

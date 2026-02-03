@@ -38,12 +38,12 @@ function formatProfile(customer: CustomerProfile) {
   const bp = customer.beautyProfile;
   const sections: React.ReactNode[] = [];
 
-  // Beauty Profile
+  // Account Profile
   sections.push(
-    <Section key="beauty" title="Beauty Profile" source="Contact">
-      <Field label="Skin Type" value={bp.skinType} />
-      <Field label="Concerns" value={bp.concerns?.join(', ')} />
-      <Field label="Allergies" value={bp.allergies?.join(', ')} />
+    <Section key="account" title="Account Profile" source="Contact">
+      <Field label="Industry" value={bp.industry} />
+      <Field label="Applications" value={bp.primaryApplications?.join(', ')} />
+      <Field label="Certifications" value={bp.certifications?.join(', ')} />
       <Field label="Preferred Brands" value={bp.preferredBrands?.join(', ')} />
     </Section>
   );

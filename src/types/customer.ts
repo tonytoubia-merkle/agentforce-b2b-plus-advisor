@@ -42,13 +42,6 @@ export interface AppendedProfile {
   interests?: string[];
   lifestyleSignals?: string[];
   geoRegion?: string;
-  // Legacy compat
-  ageRange?: string;
-  gender?: string;
-  householdIncome?: string;
-  hasChildren?: boolean;
-  homeOwnership?: 'own' | 'rent' | 'unknown';
-  educationLevel?: string;
 }
 
 // ─── Purchase Data (Order-level) ────────────────────────────────
@@ -106,18 +99,14 @@ export interface AccountPreferences {
   certifications: string[];
   preferredProcessingMethods: string[];
   preferredResins: string[];
-  communicationPrefs?: { email: boolean; phone: boolean; sms: boolean };
   preferredBrands: string[];
   volumeTier?: string;
-  // Legacy compat stubs
-  skinType?: string;
-  concerns?: string[];
-  allergies?: string[];
-  fragrancePreference?: string;
-  ageRange?: string;
+  communicationPrefs?: { email: boolean; phone: boolean; sms: boolean };
 }
 
+/** @deprecated Use AccountPreferences directly */
 export type ProfilePreferences = AccountPreferences;
+/** Legacy alias — kept for field name compat in CustomerProfile */
 export type BeautyProfile = AccountPreferences;
 
 // ─── Account Tier ───────────────────────────────────────────────
@@ -140,7 +129,7 @@ export interface CapturedProfileField<T = string> {
 }
 
 export interface AgentCapturedProfile {
-  // B2B fields
+  // B2B renewable energy fields
   annualVolume?: CapturedProfileField;
   budgetCycle?: CapturedProfileField;
   decisionMakers?: CapturedProfileField<string[]>;
@@ -155,31 +144,9 @@ export interface AgentCapturedProfile {
   priceSensitivity?: CapturedProfileField;
   competitorProducts?: CapturedProfileField;
   painPoints?: CapturedProfileField;
-  // Legacy compat
-  birthday?: CapturedProfileField;
-  anniversary?: CapturedProfileField;
-  partnerName?: CapturedProfileField;
-  giftsFor?: CapturedProfileField<string[]>;
-  upcomingOccasions?: CapturedProfileField<string[]>;
-  morningRoutineTime?: CapturedProfileField;
-  makeupFrequency?: CapturedProfileField;
-  exerciseRoutine?: CapturedProfileField;
-  workEnvironment?: CapturedProfileField;
-  beautyPriority?: CapturedProfileField;
-  priceRange?: CapturedProfileField;
-  sustainabilityPref?: CapturedProfileField;
-  climateContext?: CapturedProfileField;
-  waterIntake?: CapturedProfileField;
-  sleepPattern?: CapturedProfileField;
-}
-
-export interface TravelPreferences {
-  upcomingTrips?: {
-    destination: string;
-    departureDate: string;
-    climate: 'hot' | 'cold' | 'temperate' | 'humid';
-  }[];
-  prefersTravelSize: boolean;
+  projectPipeline?: CapturedProfileField;
+  gridInterconnection?: CapturedProfileField;
+  siteConditions?: CapturedProfileField;
 }
 
 /** @deprecated Use OrderRecord instead */
@@ -219,6 +186,7 @@ export interface CustomerProfile {
   company?: string;
   jobTitle?: string;
 
+  /** Account preferences (industry, applications, certs). Named beautyProfile for legacy compat. */
   beautyProfile: AccountPreferences;
 
   orders: OrderRecord[];
@@ -230,8 +198,6 @@ export interface CustomerProfile {
   browseSessions: BrowseSession[];
 
   loyalty: LoyaltyData | null;
-  /** @deprecated */
-  loyaltyTier?: 'bronze' | 'silver' | 'gold' | 'platinum';
   lifetimeValue?: number;
 
   agentCapturedProfile?: AgentCapturedProfile;
@@ -241,7 +207,6 @@ export interface CustomerProfile {
 
   savedPaymentMethods: PaymentMethod[];
   shippingAddresses: Address[];
-  travelPreferences?: TravelPreferences;
   /** @deprecated */
   recentActivity?: RecentActivity[];
 }
@@ -273,7 +238,4 @@ export interface CustomerSessionContext {
   capturedProfile?: string[];
   missingProfileFields?: string[];
   taggedContext?: TaggedContextField[];
-  // Legacy compat
-  skinType?: string;
-  concerns?: string[];
 }
