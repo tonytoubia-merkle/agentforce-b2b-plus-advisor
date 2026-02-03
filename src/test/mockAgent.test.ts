@@ -2,60 +2,53 @@ import { describe, it, expect } from 'vitest';
 import { generateMockResponse } from '@/services/mock/mockAgent';
 
 describe('generateMockResponse', () => {
-  it('returns moisturizer product for hydration query', async () => {
-    const response = await generateMockResponse('I need a moisturizer');
-    expect(response.message).toContain('Hydra-Calm');
+  it('returns polycarbonate product for PC query', async () => {
+    const response = await generateMockResponse('I need polycarbonate');
     expect(response.uiDirective?.action).toBe('SHOW_PRODUCT');
     expect(response.uiDirective?.payload.products).toHaveLength(1);
-    expect(response.uiDirective?.payload.products![0].id).toBe('moisturizer-sensitive');
+    expect(response.uiDirective?.payload.products![0].id).toBe('resin-pc-lexan');
   });
 
-  it('returns travel products for travel query', async () => {
-    const response = await generateMockResponse('I am going on a trip to India');
+  it('returns engineered resins for product browsing query', async () => {
+    const response = await generateMockResponse('show me resins');
     expect(response.uiDirective?.action).toBe('SHOW_PRODUCTS');
     expect(response.uiDirective?.payload.products!.length).toBeGreaterThan(1);
-    expect(response.uiDirective?.payload.sceneContext?.setting).toBe('travel');
   });
 
-  it('initiates checkout for purchase intent', async () => {
-    const response = await generateMockResponse('buy it');
-    expect(response.uiDirective?.action).toBe('INITIATE_CHECKOUT');
+  it('returns order tracking response for order query', async () => {
+    const response = await generateMockResponse('where is my order');
+    expect(response.message).toBeDefined();
+    expect(response.suggestedActions!.length).toBeGreaterThan(0);
   });
 
-  it('returns cleanser for cleanser query', async () => {
-    const response = await generateMockResponse('I need a face wash');
-    expect(response.uiDirective?.action).toBe('SHOW_PRODUCT');
-    expect(response.uiDirective?.payload.products![0].category).toBe('cleanser');
-  });
-
-  it('returns serums for serum query', async () => {
-    const response = await generateMockResponse('show me serums');
+  it('returns nylon products for nylon query', async () => {
+    const response = await generateMockResponse('show me nylon');
     expect(response.uiDirective?.action).toBe('SHOW_PRODUCTS');
-    expect(response.uiDirective?.payload.products!.every((p) => p.category === 'serum')).toBe(true);
+    expect(response.uiDirective?.payload.products!.every((p) => p.category === 'high-performance-polymer' || p.name.toLowerCase().includes('nylon') || p.name.toLowerCase().includes('ultramid'))).toBe(true);
   });
 
-  it('returns sunscreen for SPF query', async () => {
-    const response = await generateMockResponse('I need sunscreen');
+  it('returns PEEK for high performance query', async () => {
+    const response = await generateMockResponse('I need PEEK');
     expect(response.uiDirective?.action).toBe('SHOW_PRODUCT');
-    expect(response.uiDirective?.payload.products![0].id).toBe('sunscreen-lightweight');
+    expect(response.uiDirective?.payload.products![0].id).toBe('resin-peek-victrex');
   });
 
-  it('returns acne products for breakout query', async () => {
-    const response = await generateMockResponse('I have acne');
-    expect(response.uiDirective?.action).toBe('SHOW_PRODUCT');
-    expect(response.uiDirective?.payload.products![0].id).toBe('cleanser-acne');
-  });
-
-  it('returns anti-aging products for wrinkle query', async () => {
-    const response = await generateMockResponse('help with wrinkles');
+  it('returns sustainable materials for sustainability query', async () => {
+    const response = await generateMockResponse('show me sustainable materials');
     expect(response.uiDirective?.action).toBe('SHOW_PRODUCTS');
-    expect(response.uiDirective?.payload.products!.length).toBe(2);
+    expect(response.uiDirective?.payload.products!.length).toBeGreaterThan(0);
   });
 
-  it('returns routine for routine query', async () => {
-    const response = await generateMockResponse('build me a skincare routine');
+  it('returns elastomers for TPV query', async () => {
+    const response = await generateMockResponse('show me elastomers');
     expect(response.uiDirective?.action).toBe('SHOW_PRODUCTS');
-    expect(response.uiDirective?.payload.products!.length).toBe(4);
+    expect(response.uiDirective?.payload.products!.length).toBeGreaterThan(0);
+  });
+
+  it('returns pricing info for price query', async () => {
+    const response = await generateMockResponse('what are your prices');
+    expect(response.uiDirective?.action).toBe('SHOW_PRODUCTS');
+    expect(response.message).toContain('price');
   });
 
   it('resets scene for goodbye', async () => {

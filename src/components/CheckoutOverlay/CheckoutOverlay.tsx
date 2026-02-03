@@ -10,19 +10,24 @@ export const CheckoutOverlay: React.FC = () => {
   const { scene, closeCheckout } = useScene();
   const { customer } = useCustomer();
   const [checkoutState, setCheckoutState] = useState<CheckoutState>('idle');
-  const [orderId] = useState(() => `ORD-${Date.now().toString(36).toUpperCase()}`);
+  const [orderId] = useState(() => `PO-${Date.now().toString(36).toUpperCase()}`);
+  const [poNumber, setPoNumber] = useState('');
 
   const products = scene.products;
-  const total = products.reduce((sum, p) => sum + p.price, 0);
-  const defaultPayment = customer?.savedPaymentMethods.find((p) => p.isDefault);
+  const total = products.reduce((sum, p) => {
+    const qty = p.attributes?.minOrderQty ? parseInt(p.attributes.minOrderQty.replace(/[^0-9]/g, '')) || 1000 : 1000;
+    return sum + p.price * qty;
+  }, 0);
   const defaultAddress = customer?.shippingAddresses.find((a) => a.isDefault);
+  const accountTier = customer?.loyalty?.tier ?? 'Standard';
+  const paymentTerms = accountTier === 'platinum' || accountTier === 'gold' ? 'Net 45' : 'Net 30';
 
-  const estimatedDelivery = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toLocaleDateString(
+  const estimatedDelivery = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString(
     'en-US',
     { weekday: 'long', month: 'long', day: 'numeric' }
   );
 
-  const handleConfirmPurchase = () => {
+  const handleSubmitOrder = () => {
     setCheckoutState('processing');
     setTimeout(() => {
       setCheckoutState('confirmed');
@@ -58,72 +63,95 @@ export const CheckoutOverlay: React.FC = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-2">Order Confirmed!</h2>
-            <p className="text-gray-500 mb-1">Order {orderId}</p>
-            <p className="text-gray-500 mb-6">Estimated delivery: {estimatedDelivery}</p>
+            <h2 className="text-2xl font-semibold text-gray-900 mb-2">Order Submitted</h2>
+            <p className="text-gray-500 mb-1">Reference: {orderId}</p>
+            {poNumber && <p className="text-gray-500 mb-1">PO#: {poNumber}</p>}
+            <p className="text-gray-500 mb-1">Payment: {paymentTerms}</p>
+            <p className="text-gray-500 mb-6">Estimated ship date: {estimatedDelivery}</p>
             <div className="space-y-2 mb-6">
-              {products.map((product) => (
-                <p key={product.id} className="text-gray-700 text-sm">{product.name}</p>
-              ))}
-              <p className="font-semibold text-gray-900 mt-2">Total: ${total.toFixed(2)}</p>
+              {products.map((product) => {
+                const qty = product.attributes?.minOrderQty || '1,000 lbs';
+                return (
+                  <p key={product.id} className="text-gray-700 text-sm">
+                    {product.name} — {qty} @ ${product.price.toFixed(2)}/lb
+                  </p>
+                );
+              })}
+              <p className="font-semibold text-gray-900 mt-2">
+                Estimated Total: ${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </p>
             </div>
-            <Button onClick={handleDone} size="lg" className="w-full bg-purple-600 hover:bg-purple-700 text-white">
+            <Button onClick={handleDone} size="lg" className="w-full bg-[#59285D] hover:bg-[#472047] text-white">
               Done
             </Button>
           </div>
         ) : (
           <>
             <h2 className="text-2xl font-semibold text-gray-900 mb-6">
-              Quick Checkout
+              Submit Order
             </h2>
 
-            <div className="space-y-4 mb-6">
-              {products.map((product) => (
-                <div key={product.id} className="flex items-center gap-4">
-                  <img
-                    src={product.imageUrl}
-                    alt={product.name}
-                    className="w-16 h-16 rounded-lg object-cover"
-                  />
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-900">{product.name}</p>
-                    <p className="text-gray-500 text-sm">{product.brand}</p>
+            <div className="space-y-3 mb-6">
+              {products.map((product) => {
+                const qty = product.attributes?.minOrderQty || '1,000 lbs';
+                return (
+                  <div key={product.id} className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center">
+                      <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-900 text-sm">{product.name}</p>
+                      <p className="text-gray-500 text-xs">{product.brand} · {qty}</p>
+                    </div>
+                    <span className="font-medium text-sm">${product.price.toFixed(2)}/lb</span>
                   </div>
-                  <span className="font-medium">${product.price.toFixed(2)}</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <div className="border-t border-gray-200 my-4" />
 
-            {defaultPayment && (
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-gray-600">Payment</span>
-                <span className="font-medium">
-                  {defaultPayment.brand?.toUpperCase()} &bull;&bull;&bull;&bull; {defaultPayment.last4}
-                </span>
-              </div>
-            )}
+            {/* PO Number */}
+            <div className="mb-4">
+              <label className="block text-sm text-gray-600 mb-1">PO Number (optional)</label>
+              <input
+                type="text"
+                value={poNumber}
+                onChange={(e) => setPoNumber(e.target.value)}
+                placeholder="Enter your PO number"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#59285D]/30 focus:border-[#59285D]"
+              />
+            </div>
+
+            {/* Payment Terms */}
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-gray-600 text-sm">Payment Terms</span>
+              <span className="font-medium text-sm">{paymentTerms}</span>
+            </div>
 
             {defaultAddress && (
-              <div className="flex items-center justify-between mb-6">
-                <span className="text-gray-600">Ship to</span>
-                <span className="font-medium text-right">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-gray-600 text-sm">Ship to</span>
+                <span className="font-medium text-sm text-right">
                   {defaultAddress.city}, {defaultAddress.state}
                 </span>
               </div>
             )}
 
             <div className="flex items-center justify-between mb-6">
-              <span className="text-xl font-semibold">Total</span>
-              <span className="text-xl font-semibold">${total.toFixed(2)}</span>
+              <span className="text-lg font-semibold">Estimated Total</span>
+              <span className="text-lg font-semibold">
+                ${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
             </div>
 
             <Button
-              onClick={handleConfirmPurchase}
+              onClick={handleSubmitOrder}
               disabled={checkoutState === 'processing'}
               size="lg"
-              className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+              className="w-full bg-[#59285D] hover:bg-[#472047] text-white"
             >
               {checkoutState === 'processing' ? (
                 <span className="flex items-center justify-center gap-2">
@@ -131,10 +159,10 @@ export const CheckoutOverlay: React.FC = () => {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
-                  Processing...
+                  Submitting...
                 </span>
               ) : (
-                'Confirm Purchase'
+                'Submit Order'
               )}
             </Button>
 

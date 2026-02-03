@@ -16,7 +16,7 @@ export const ProductDetails: React.FC<ProductDetailsProps> = ({ product, onClose
       className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 text-white max-w-sm w-full"
     >
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold">Product Details</h3>
+        <h3 className="text-lg font-semibold">Material Details</h3>
         <button onClick={onClose} className="text-white/60 hover:text-white">
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -40,51 +40,71 @@ export const ProductDetails: React.FC<ProductDetailsProps> = ({ product, onClose
         <span className="text-white/70 text-sm">{product.rating ?? 0} ({(product.reviewCount ?? 0).toLocaleString()} reviews)</span>
       </div>
 
-      {product.attributes?.skinType && (
+      {product.attributes?.processingMethod?.length ? (
         <div className="mb-4">
-          <p className="text-white/60 text-xs uppercase tracking-wider mb-2">Skin type compatibility</p>
+          <p className="text-white/60 text-xs uppercase tracking-wider mb-2">Processing Methods</p>
           <div className="flex flex-wrap gap-1.5">
-            {product.attributes?.skinType.map((type) => (
-              <Badge key={type} className="bg-white/20 text-white text-xs">
-                {type}
+            {product.attributes.processingMethod.map((method) => (
+              <Badge key={method} className="bg-white/20 text-white text-xs capitalize">
+                {method.replace(/-/g, ' ')}
               </Badge>
             ))}
           </div>
         </div>
-      )}
+      ) : null}
 
-      {product.attributes?.concerns && (
+      {product.attributes?.industries?.length ? (
         <div className="mb-4">
-          <p className="text-white/60 text-xs uppercase tracking-wider mb-2">Targets</p>
+          <p className="text-white/60 text-xs uppercase tracking-wider mb-2">Industries</p>
           <div className="flex flex-wrap gap-1.5">
-            {product.attributes?.concerns.map((concern) => (
-              <Badge key={concern} className="bg-purple-500/30 text-white text-xs">
-                {concern}
+            {product.attributes.industries.map((ind) => (
+              <Badge key={ind} className="bg-[#59285D]/30 text-white text-xs">
+                {ind}
               </Badge>
             ))}
           </div>
         </div>
-      )}
+      ) : null}
 
-      {product.attributes?.ingredients && (
+      {product.attributes?.certifications?.length ? (
         <div className="mb-4">
-          <p className="text-white/60 text-xs uppercase tracking-wider mb-2">Key ingredients</p>
-          <ul className="space-y-1">
-            {product.attributes?.ingredients.map((ingredient) => (
-              <li key={ingredient} className="text-white/80 text-sm flex items-center gap-2">
-                <span className="w-1.5 h-1.5 bg-purple-400 rounded-full" />
-                {ingredient}
-              </li>
+          <p className="text-white/60 text-xs uppercase tracking-wider mb-2">Certifications</p>
+          <div className="flex flex-wrap gap-1.5">
+            {product.attributes.certifications.map((cert) => (
+              <Badge key={cert} className="bg-emerald-500/20 text-emerald-300 text-xs">
+                {cert}
+              </Badge>
             ))}
-          </ul>
+          </div>
         </div>
-      )}
+      ) : null}
 
-      {product.attributes?.size && (
-        <div className="text-white/60 text-sm">
-          Size: {product.attributes?.size}
-        </div>
-      )}
+      <div className="space-y-1.5 text-sm">
+        {product.attributes?.packagingSize && (
+          <div className="flex justify-between">
+            <span className="text-white/60">Packaging</span>
+            <span className="text-white/80">{product.attributes.packagingSize}</span>
+          </div>
+        )}
+        {product.attributes?.minOrderQty && (
+          <div className="flex justify-between">
+            <span className="text-white/60">Min Order</span>
+            <span className="text-white/80">{product.attributes.minOrderQty}</span>
+          </div>
+        )}
+        {product.attributes?.leadTimeDays != null && (
+          <div className="flex justify-between">
+            <span className="text-white/60">Lead Time</span>
+            <span className="text-white/80">{product.attributes.leadTimeDays} days</span>
+          </div>
+        )}
+        {product.attributes?.sustainableContent && (
+          <div className="flex justify-between">
+            <span className="text-white/60">Sustainability</span>
+            <span className="text-emerald-300">{product.attributes.sustainableContent}</span>
+          </div>
+        )}
+      </div>
     </motion.div>
   );
 };

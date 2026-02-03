@@ -21,7 +21,9 @@ export type UIAction =
   | 'WELCOME_SCENE'
   | 'INITIATE_CHECKOUT'
   | 'CONFIRM_ORDER'
-  | 'RESET_SCENE';
+  | 'RESET_SCENE'
+  | 'SHOW_ORDER_STATUS'
+  | 'SHOW_ACCOUNT_SUMMARY';
 
 export interface UIDirectivePayload {
   products?: Product[];
@@ -46,6 +48,20 @@ export interface UIDirectivePayload {
     orderId: string;
     estimatedDelivery: string;
   };
+  orderStatus?: {
+    orderId: string;
+    status: string;
+    trackingNumber?: string;
+    estimatedDelivery?: string;
+    lineItems?: { productName: string; quantity: number }[];
+  };
+  accountSummary?: {
+    totalOrders: number;
+    openOrders: number;
+    ytdSpend: number;
+    accountTier: string;
+  };
+  suggestedActions?: string[];
 }
 
 export interface AgentResponse {

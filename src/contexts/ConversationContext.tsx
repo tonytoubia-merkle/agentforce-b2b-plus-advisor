@@ -28,16 +28,20 @@ interface SessionSnapshot {
 }
 
 function buildSessionContext(customer: CustomerProfile): CustomerSessionContext {
-  // Flatten recent orders into readable purchase summaries
+  // Flatten recent orders into readable purchase/order summaries
   const recentOrders = (customer.orders || [])
     .sort((a, b) => b.orderDate.localeCompare(a.orderDate))
-    .slice(0, 3);
+    .slice(0, 5);
   const recentPurchases = recentOrders.flatMap((o) =>
     o.lineItems.map((li) => li.productId)
   );
   const recentActivity = recentOrders.map((o) => {
-    const items = o.lineItems.map((li) => li.productName).join(', ');
-    return `Order ${o.orderId} on ${o.orderDate} (${o.channel}): ${items}`;
+    const items = o.lineItems.map((li) => {
+      const qty = li.quantity ? ` (${li.quantity} lbs)` : '';
+      return `${li.productName}${qty}`;
+    }).join(', ');
+    const status = o.status ? ` — ${o.status}` : '';
+    return `PO ${o.orderId} on ${o.orderDate} (${o.channel}): ${items}${status}`;
   });
 
   // Chat context summaries
@@ -75,13 +79,20 @@ function buildSessionContext(customer: CustomerProfile): CustomerSessionContext 
 
   if (captured) {
     const fieldLabel: Record<string, string> = {
-      birthday: 'Birthday', anniversary: 'Anniversary', partnerName: 'Partner name',
-      giftsFor: 'Buys gifts for', upcomingOccasions: 'Upcoming occasions',
-      morningRoutineTime: 'Morning routine', makeupFrequency: 'Makeup frequency',
-      exerciseRoutine: 'Exercise', workEnvironment: 'Work environment',
-      beautyPriority: 'Beauty priority', priceRange: 'Price sensitivity',
-      sustainabilityPref: 'Sustainability', climateContext: 'Climate',
-      waterIntake: 'Hydration habits', sleepPattern: 'Sleep pattern',
+      annualVolume: 'Annual volume (lbs)',
+      budgetCycle: 'Budget cycle',
+      qualityStandards: 'Quality standards',
+      sustainabilityGoals: 'Sustainability goals',
+      preferredLeadTime: 'Preferred lead time',
+      processingMethod: 'Processing method',
+      materialSpecs: 'Material specifications',
+      complianceReqs: 'Compliance requirements',
+      warehouseLocation: 'Warehouse / ship-to location',
+      reorderFrequency: 'Reorder frequency',
+      primaryApplication: 'Primary application',
+      secondaryApplications: 'Secondary applications',
+      testingRequirements: 'Testing / certification requirements',
+      packagingPreference: 'Packaging preference',
     };
     for (const [key, label] of Object.entries(fieldLabel)) {
       const field = captured[key as keyof AgentCapturedProfile] as CapturedProfileField | undefined;
@@ -95,38 +106,43 @@ function buildSessionContext(customer: CustomerProfile): CustomerSessionContext 
   } else {
     // No captured profile at all — everything is missing
     missingProfileFields.push(
-      'Birthday', 'Anniversary', 'Morning routine', 'Exercise',
-      'Work environment', 'Beauty priority', 'Price sensitivity',
+      'Annual volume (lbs)', 'Budget cycle', 'Quality standards',
+      'Sustainability goals', 'Processing method', 'Preferred lead time',
+      'Primary application',
     );
   }
 
   // ─── Build provenance-tagged context ───────────────────────────
   const taggedContext: TaggedContextField[] = [];
 
-  // 1P-EXPLICIT (declared): beauty profile from preference center
+  // 1P-EXPLICIT (declared): industry profile — industry, applications, certifications
   if (customer.beautyProfile?.skinType) {
-    taggedContext.push({ value: `Skin type: ${customer.beautyProfile.skinType}`, provenance: 'declared', usage: 'direct' });
+    taggedContext.push({ value: `Industry: ${customer.beautyProfile.skinType}`, provenance: 'declared', usage: 'direct' });
   }
   if (customer.beautyProfile?.concerns?.length) {
-    taggedContext.push({ value: `Concerns: ${customer.beautyProfile.concerns.join(', ')}`, provenance: 'declared', usage: 'direct' });
+    taggedContext.push({ value: `Applications: ${customer.beautyProfile.concerns.join(', ')}`, provenance: 'declared', usage: 'direct' });
   }
   if (customer.beautyProfile?.allergies?.length) {
-    taggedContext.push({ value: `Allergies: ${customer.beautyProfile.allergies.join(', ')}`, provenance: 'declared', usage: 'direct' });
+    taggedContext.push({ value: `Certifications: ${customer.beautyProfile.allergies.join(', ')}`, provenance: 'declared', usage: 'direct' });
   }
   if (customer.beautyProfile?.fragrancePreference) {
-    taggedContext.push({ value: `Fragrance preference: ${customer.beautyProfile.fragrancePreference}`, provenance: 'declared', usage: 'direct' });
+    taggedContext.push({ value: `Preferred resins/brands: ${customer.beautyProfile.fragrancePreference}`, provenance: 'declared', usage: 'direct' });
   }
 
-  // 1P-BEHAVIORAL (observed): purchase history
+  // 1P-BEHAVIORAL (observed): order history
   for (const order of (customer.orders || []).slice(0, 5)) {
-    const items = order.lineItems.map((li) => li.productName).join(', ');
-    taggedContext.push({ value: `Purchased ${items} on ${order.orderDate} (${order.channel})`, provenance: 'observed', usage: 'direct' });
+    const items = order.lineItems.map((li) => {
+      const qty = li.quantity ? ` (${li.quantity} lbs)` : '';
+      return `${li.productName}${qty}`;
+    }).join(', ');
+    const status = order.status ? ` — ${order.status}` : '';
+    taggedContext.push({ value: `PO ${order.orderId}: ${items} on ${order.orderDate} (${order.channel})${status}`, provenance: 'observed', usage: 'direct' });
   }
 
-  // Loyalty — observed (they enrolled)
+  // Account tier — observed (they are enrolled)
   if (customer.loyalty) {
-    const pts = customer.loyalty.pointsBalance ? ` (${customer.loyalty.pointsBalance} pts)` : '';
-    taggedContext.push({ value: `Loyalty: ${customer.loyalty.tier}${pts}`, provenance: 'observed', usage: 'direct' });
+    const pts = customer.loyalty.pointsBalance ? ` (volume credit: ${customer.loyalty.pointsBalance})` : '';
+    taggedContext.push({ value: `Account tier: ${customer.loyalty.tier}${pts}`, provenance: 'observed', usage: 'direct' });
   }
 
   // Chat summaries — observed (from prior conversations)
@@ -160,7 +176,7 @@ function buildSessionContext(customer: CustomerProfile): CustomerSessionContext 
     }
   }
 
-  // 3P-APPENDED: Merkury enrichment
+  // 3P-APPENDED: Merkury enrichment (company size, revenue, industry vertical)
   if (customer.appendedProfile?.interests) {
     for (const interest of customer.appendedProfile.interests) {
       taggedContext.push({ value: interest, provenance: 'appended', usage: 'influence_only' });
@@ -202,16 +218,27 @@ function buildWelcomeMessage(ctx: CustomerSessionContext): string {
 
   const lines: string[] = ['[WELCOME]'];
 
+  // ── System instructions ────────────────────────────────────────
+  lines.push('[SYSTEM INSTRUCTIONS]');
+  lines.push('You are a Formerra Plus materials advisor — the concierge service of Formerra, a leading specialty & engineered materials distributor.');
+  lines.push('Maintain a professional B2B tone. You have deep technical knowledge of plastics, resins, and engineered materials.');
+  lines.push('Focus on account management, order tracking, reorder assistance, material selection, and technical guidance.');
+  lines.push('When discussing materials, reference relevant properties (melt flow index, tensile strength, impact resistance, etc.) where appropriate.');
+  lines.push('Help customers find the right material for their application, track existing orders, and manage their account efficiently.');
+  lines.push('');
+
   // ── Identity header ──────────────────────────────────────────
   if (isAppended) {
     lines.push(`Customer: First-time visitor (identity resolved via Merkury, NOT a hand-raiser)`);
     lines.push(`Identity: appended`);
-    lines.push(`[INSTRUCTION] Do NOT greet by name. Do NOT reference specific demographic or interest data directly. Instead, use appended signals to subtly curate product selections and scene choices. Frame recommendations as "popular picks", "trending", or "you might enjoy" — never "based on your profile" or "we know you like X".`);
+    lines.push(`[INSTRUCTION] Do NOT greet by name. Do NOT reference specific company data or industry signals directly. Instead, use appended signals to subtly curate product selections and material recommendations. Frame suggestions as "popular in your sector", "commonly specified for these applications", or "you might consider" — never "based on your profile" or "we know your company".`);
   } else if (isAnonymous) {
     lines.push(`Customer: Anonymous visitor`);
     lines.push(`Identity: anonymous`);
   } else {
-    lines.push(`Customer: ${ctx.name} (greet by first name)`, `Email: ${ctx.email || 'unknown'}`, `Identity: ${ctx.identityTier}`);
+    const nameLine = `Customer: ${ctx.name}`;
+    lines.push(nameLine, `Email: ${ctx.email || 'unknown'}`, `Identity: ${ctx.identityTier}`);
+    if (ctx.loyaltyTier) lines.push(`Account tier: ${ctx.loyaltyTier}`);
     if (ctx.email) lines.push(`[INSTRUCTION] The customer has been identified via their email address (${ctx.email}). Call Identify Customer By Email with this address to resolve their contactId before performing any profile updates or event captures.`);
   }
 
@@ -219,9 +246,9 @@ function buildWelcomeMessage(ctx: CustomerSessionContext): string {
   lines.push('');
   lines.push('[DATA USAGE RULES]');
   lines.push('Context below is tagged by provenance. Follow these rules strictly:');
-  lines.push('- [CONFIRMED]: Customer stated or declared this. Reference explicitly ("You mentioned...", "Based on your profile...").');
-  lines.push('- [OBSERVED/INFERRED]: Behavioral signals or agent inferences. Reference gently ("You were looking at...", "It seems like...").');
-  lines.push('- [INFLUENCE ONLY]: Third-party appended data. NEVER mention directly. Use only to curate product selection, scene mood, or ordering of recommendations.');
+  lines.push('- [CONFIRMED]: Customer stated or declared this (industry, applications, certifications, preferred resins/brands, order history). Reference explicitly ("Your account shows...", "Based on your specifications...").');
+  lines.push('- [OBSERVED/INFERRED]: Behavioral signals or agent inferences (browse behavior, inferred processing needs). Reference gently ("You were looking at...", "It appears you may need...").');
+  lines.push('- [INFLUENCE ONLY]: Third-party appended data (company size, estimated revenue, industry vertical). NEVER mention directly. Use only to curate material recommendations, prioritize product categories, or tailor technical depth.');
 
   // ── Provenance-tagged context ────────────────────────────────
   if (ctx.taggedContext?.length) {
@@ -236,12 +263,12 @@ function buildWelcomeMessage(ctx: CustomerSessionContext): string {
     }
     if (soft.length) {
       lines.push('');
-      lines.push('[OBSERVED/INFERRED — reference gently, e.g. "it looks like..." or "you might enjoy..."]');
+      lines.push('[OBSERVED/INFERRED — reference gently, e.g. "it looks like..." or "based on your recent activity..."]');
       soft.forEach(f => lines.push(`  ${f.value}`));
     }
     if (influence.length) {
       lines.push('');
-      lines.push('[INFLUENCE ONLY — use to curate selections, NEVER reference directly]');
+      lines.push('[INFLUENCE ONLY — use to curate material selections, NEVER reference directly]');
       influence.forEach(f => lines.push(`  ${f.value}`));
     }
   }
@@ -288,15 +315,20 @@ function writeConversationSummary(customerId: string, msgs: AgentMessage[]): voi
 function extractTopicsFromMessages(msgs: AgentMessage[]): string[] {
   const allText = msgs.map((m) => m.content.toLowerCase()).join(' ');
   const topics: string[] = [];
-  if (allText.includes('moisturizer') || allText.includes('hydrat')) topics.push('moisturizer');
-  if (allText.includes('serum') || allText.includes('retinol')) topics.push('serum');
-  if (allText.includes('cleanser')) topics.push('cleanser');
-  if (allText.includes('sunscreen') || allText.includes('spf')) topics.push('sun protection');
-  if (allText.includes('fragrance') || allText.includes('perfume')) topics.push('fragrance');
-  if (allText.includes('travel')) topics.push('travel');
-  if (allText.includes('gift') || allText.includes('anniversary')) topics.push('gifting');
-  if (allText.includes('routine')) topics.push('skincare routine');
-  if (allText.includes('checkout') || allText.includes('buy')) topics.push('purchase intent');
+  if (allText.includes('resin') || allText.includes('polymer')) topics.push('resins');
+  if (allText.includes('nylon') || allText.includes('polyamide')) topics.push('nylon/polyamide');
+  if (allText.includes('polycarbonate') || allText.includes('pc ')) topics.push('polycarbonate');
+  if (allText.includes('polyethylene') || allText.includes('hdpe') || allText.includes('ldpe')) topics.push('polyethylene');
+  if (allText.includes('polypropylene') || allText.includes(' pp ')) topics.push('polypropylene');
+  if (allText.includes('abs')) topics.push('ABS');
+  if (allText.includes('sustainable') || allText.includes('recycled') || allText.includes('bio-based')) topics.push('sustainability');
+  if (allText.includes('order') || allText.includes('track') || allText.includes('shipment')) topics.push('order tracking');
+  if (allText.includes('reorder') || allText.includes('replenish')) topics.push('reorder');
+  if (allText.includes('quote') || allText.includes('pricing')) topics.push('quote/pricing');
+  if (allText.includes('sample')) topics.push('sample request');
+  if (allText.includes('spec') || allText.includes('tds') || allText.includes('data sheet')) topics.push('technical specs');
+  if (allText.includes('certif') || allText.includes('compliance') || allText.includes('fda')) topics.push('certifications/compliance');
+  if (allText.includes('injection') || allText.includes('extrusion') || allText.includes('blow mold')) topics.push('processing');
   return topics.length ? topics : ['general inquiry'];
 }
 
@@ -316,9 +348,9 @@ export const ConversationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [isAgentTyping, setIsAgentTyping] = useState(false);
   const [isLoadingWelcome, setIsLoadingWelcome] = useState(false);
   const [suggestedActions, setSuggestedActions] = useState<string[]>([
-    'Show me moisturizers',
-    'I need travel products',
-    'What do you recommend?',
+    'Browse resins',
+    'See sustainable materials',
+    'Request a quote',
   ]);
   const { processUIDirective, resetScene, getSceneSnapshot, restoreSceneSnapshot } = useScene();
   const { customer, selectedPersonaId, _isRefreshRef, _onSessionReset } = useCustomer();
@@ -392,9 +424,9 @@ export const ConversationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       resetScene();
       setMessages([]);
       setSuggestedActions([
-        'Show me moisturizers',
-        'I need travel products',
-        'What do you recommend?',
+        'Browse resins',
+        'See sustainable materials',
+        'Request a quote',
       ]);
       setIsLoadingWelcome(false);
       return;
@@ -490,11 +522,11 @@ export const ConversationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         // Build context-aware fallback suggestions if agent didn't provide any
         if (!actions.length && response.uiDirective?.action === 'WELCOME_SCENE') {
           if (sessionCtx.identityTier === 'known' && sessionCtx.recentPurchases?.length) {
-            actions = ['Restock my favorites', "What's new for me?", 'Show me something different'];
+            actions = ['Track my orders', 'Reorder last purchase', "What's new in engineered resins?", 'Request a quote'];
           } else if (sessionCtx.identityTier === 'appended') {
-            actions = ['What do you recommend?', 'Show me bestsellers', 'Help me find my routine'];
+            actions = ['Browse our catalog', 'See engineered resins', 'Request a sample', 'Talk to a rep'];
           } else {
-            actions = ['Show me moisturizers', 'I need travel products', 'What do you recommend?'];
+            actions = ['Browse resins', 'See sustainable materials', 'Request a quote'];
           }
         }
         setSuggestedActions(actions);
@@ -568,9 +600,9 @@ export const ConversationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const clearConversation = useCallback(() => {
     setMessages([]);
     setSuggestedActions([
-      'Show me moisturizers',
-      'I need travel products',
-      'What do you recommend?',
+      'Browse resins',
+      'See sustainable materials',
+      'Request a quote',
     ]);
   }, []);
 

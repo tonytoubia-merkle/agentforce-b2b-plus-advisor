@@ -22,7 +22,7 @@ export const ProductHero: React.FC<ProductHeroProps> = ({ product }) => {
         transition={{ delay: 0.2 }}
         className="relative"
       >
-        <div className="w-48 h-48 rounded-2xl overflow-hidden shadow-xl relative">
+        <div className="w-48 h-48 rounded-2xl overflow-hidden shadow-xl relative bg-white/5">
           <img
             src={product.imageUrl}
             alt={product.name}
@@ -30,8 +30,8 @@ export const ProductHero: React.FC<ProductHeroProps> = ({ product }) => {
           />
         </div>
         {product.personalizationScore && product.personalizationScore > 0.8 && (
-          <Badge className="absolute -top-2 -right-2 bg-green-500">
-            Perfect Match
+          <Badge className="absolute -top-2 -right-2 bg-emerald-600">
+            Recommended
           </Badge>
         )}
         <button
@@ -49,7 +49,7 @@ export const ProductHero: React.FC<ProductHeroProps> = ({ product }) => {
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.3 }}
-        className="flex flex-col gap-4 text-white max-w-md"
+        className="flex flex-col gap-3 text-white max-w-md"
       >
         <span className="text-white/60 uppercase tracking-wider text-xs">
           {product.brand}
@@ -61,27 +61,45 @@ export const ProductHero: React.FC<ProductHeroProps> = ({ product }) => {
           {product.description}
         </p>
 
-        <div className="flex flex-wrap gap-2 mt-2">
-          {product.attributes?.skinType?.map((type) => (
+        <div className="flex flex-wrap gap-2 mt-1">
+          {product.attributes?.processingMethod?.map((method) => (
             <span
-              key={type}
-              className="px-3 py-1 bg-white/20 rounded-full text-sm"
+              key={method}
+              className="px-3 py-1 bg-white/15 rounded-full text-xs capitalize"
             >
-              {type} skin
+              {method.replace(/-/g, ' ')}
             </span>
           ))}
         </div>
 
-        <div className="flex items-center gap-6 mt-4">
-          <span className="text-xl font-light">
-            ${(product.price ?? 0).toFixed(2)}
-          </span>
+        {product.attributes?.certifications?.length ? (
+          <div className="flex flex-wrap gap-1.5 mt-1">
+            {product.attributes.certifications.map((cert) => (
+              <span key={cert} className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 rounded text-[10px] font-medium">
+                {cert}
+              </span>
+            ))}
+          </div>
+        ) : null}
+
+        <div className="flex items-center gap-6 mt-3">
+          <div>
+            <span className="text-xl font-light">
+              ${(product.price ?? 0).toFixed(2)}
+            </span>
+            <span className="text-white/50 text-sm ml-1">/lb</span>
+          </div>
+          {product.attributes?.minOrderQty && (
+            <span className="text-white/50 text-xs">
+              Min: {product.attributes.minOrderQty}
+            </span>
+          )}
           <Button
             onClick={() => openCheckout()}
             size="lg"
-            className="bg-white text-purple-900 hover:bg-white/90"
+            className="bg-white text-[#59285D] hover:bg-white/90"
           >
-            Add to Bag
+            Request Quote
           </Button>
         </div>
       </motion.div>

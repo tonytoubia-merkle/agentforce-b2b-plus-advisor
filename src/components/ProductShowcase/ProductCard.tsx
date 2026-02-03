@@ -14,17 +14,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     <motion.div
       whileHover={{ y: -4, scale: 1.03 }}
       transition={{ duration: 0.2 }}
-      className="w-36 flex-shrink-0 rounded-xl overflow-hidden bg-white/5 backdrop-blur-sm border border-white/10 cursor-pointer"
+      className="w-44 flex-shrink-0 rounded-xl overflow-hidden bg-white/5 backdrop-blur-sm border border-white/10 cursor-pointer"
     >
-      <div className="relative w-full h-28">
+      <div className="relative w-full h-28 bg-white/5">
         <img
           src={product.imageUrl}
           alt={product.name}
           className="w-full h-full object-contain product-blend p-2"
         />
-        {product.attributes?.isTravel && (
-          <Badge className="absolute top-1.5 left-1.5 bg-blue-500 text-[9px] px-1.5 py-0.5">
-            Travel
+        {product.attributes?.sustainableContent && (
+          <Badge className="absolute top-1.5 left-1.5 bg-emerald-600 text-[9px] px-1.5 py-0.5">
+            Sustainable
           </Badge>
         )}
       </div>
@@ -37,15 +37,21 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           {product.name}
         </h3>
 
+        {product.attributes?.leadTimeDays != null && (
+          <span className="text-white/40 text-[9px] block mt-0.5">
+            {product.attributes.leadTimeDays}d lead time
+          </span>
+        )}
+
         <div className="flex items-center justify-between mt-1.5">
           <span className="text-xs font-medium">
-            ${(product.price ?? 0).toFixed(2)}
+            ${(product.price ?? 0).toFixed(2)}<span className="text-white/40 text-[9px]">/lb</span>
           </span>
           <button
             onClick={() => openCheckout()}
             className="px-2 py-0.5 bg-white/20 hover:bg-white/30 rounded-full text-[10px] transition-colors"
           >
-            Add
+            Quote
           </button>
         </div>
       </div>
