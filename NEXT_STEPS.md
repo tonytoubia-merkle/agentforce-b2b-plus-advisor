@@ -1,6 +1,6 @@
 # Next Steps: Moving Beyond Mock Scenarios
 
-This document outlines every gap between the current demo implementation and a fully functional Agentforce retail concierge, organized by priority.
+This document outlines every gap between the current demo implementation and a fully functional Agentforce retail advisor, organized by priority.
 
 ---
 
@@ -208,8 +208,8 @@ The spec defines a full `salesforce/` directory that doesn't exist yet. This is 
 salesforce/
 ├── sfdx-project.json
 └── force-app/main/default/
-    ├── agents/Beauty_Concierge/
-    │   ├── Beauty_Concierge.agent-meta.xml
+    ├── agents/Beauty_Advisor/
+    │   ├── Beauty_Advisor.agent-meta.xml
     │   └── topics/
     │       ├── ProductDiscovery.agentTopic-meta.xml
     │       ├── ProductRecommendation.agentTopic-meta.xml

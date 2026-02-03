@@ -1,4 +1,4 @@
-# Quick Start: API Setup for Agentforce Retail Concierge
+# Quick Start: API Setup for Agentforce Retail Advisor
 
 ## Required API Credentials
 

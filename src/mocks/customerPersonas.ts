@@ -74,7 +74,7 @@ const sarahChen: CustomerProfile = {
   chatSummaries: [
     {
       sessionDate: '2025-09-08',
-      summary: 'Sarah visited the in-store concierge asking about overnight hydration for sensitive skin. Recommended the Deep Dew Hydrating Mask. She was concerned about fragrance in skincare and confirmed she avoids all fragranced products.',
+      summary: 'Sarah visited the in-store advisor asking about overnight hydration for sensitive skin. Recommended the Deep Dew Hydrating Mask. She was concerned about fragrance in skincare and confirmed she avoids all fragranced products.',
       sentiment: 'positive',
       topicsDiscussed: ['overnight hydration', 'sensitive skin', 'fragrance allergy'],
     },

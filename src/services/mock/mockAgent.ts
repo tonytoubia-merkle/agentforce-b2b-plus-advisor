@@ -293,7 +293,7 @@ function generateWelcomeResponse(): AgentResponse | null {
         action: 'WELCOME_SCENE' as UIAction,
         payload: {
           welcomeMessage: 'Welcome!',
-          welcomeSubtext: "Your personal beauty concierge — let's find your perfect match.",
+          welcomeSubtext: "Your personal beauty advisor — let's find your perfect match.",
           sceneContext: {
             setting: 'neutral',
             generateBackground: false,
@@ -313,12 +313,12 @@ function generateWelcomeResponse(): AgentResponse | null {
   // Anonymous
   return {
     sessionId: 'mock-session',
-    message: "Welcome to your personal beauty concierge! What can I help you discover today?",
+    message: "Welcome to your personal beauty advisor! What can I help you discover today?",
     uiDirective: {
       action: 'WELCOME_SCENE' as UIAction,
       payload: {
         welcomeMessage: 'Welcome!',
-        welcomeSubtext: 'Your personal beauty concierge is ready to help you discover something perfect.',
+        welcomeSubtext: 'Your personal beauty advisor is ready to help you discover something perfect.',
         sceneContext: {
           setting: 'neutral',
           mood: 'elegant-welcome',
@@ -762,7 +762,7 @@ const RESPONSE_PATTERNS: {
       const welcome = generateWelcomeResponse();
       if (welcome) return welcome;
       return {
-        message: "Hello! Welcome to your personal beauty concierge. What are you looking for today?",
+        message: "Hello! Welcome to your personal beauty advisor. What are you looking for today?",
         suggestedActions: ['Show me moisturizers', 'Show me makeup', 'Show me fragrances', 'Build me a routine'],
       };
     },

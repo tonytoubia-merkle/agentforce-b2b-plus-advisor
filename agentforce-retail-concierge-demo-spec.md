@@ -2,11 +2,11 @@
 
 ## Project Overview
 
-Build a conversation-first, generative commerce experience using Salesforce Agentforce Vibes with React. The demo showcases a "beauty concierge" that transforms the UI dynamically based on conversation context, generating personalized product recommendations with AI-generated contextual backgrounds.
+Build a conversation-first, generative commerce experience using Salesforce Agentforce Vibes with React. The demo showcases a "beauty advisor" that transforms the UI dynamically based on conversation context, generating personalized product recommendations with AI-generated contextual backgrounds.
 
 ### Demo Flow Summary
 
-1. **Opening Scene**: Minimalist page with centered chat input - "I'm your beauty concierge, how can I help today?"
+1. **Opening Scene**: Minimalist page with centered chat input - "I'm your beauty advisor, how can I help today?"
 2. **Product Discovery**: User asks for moisturizer → UI morphs, product appears hero-style with generative bathroom scene background
 3. **Quick Purchase**: User says "buy it" → Frictionless checkout overlay with stored payment
 4. **Contextual Expansion**: User mentions India trip → Scene transforms to travel kit with luggage/toiletries background
@@ -82,10 +82,10 @@ agentic-commerce-demo/
 │   ├── index.css                 # Global styles + Tailwind
 │   │
 │   ├── components/
-│   │   ├── ConciergePage/
+│   │   ├── AdvisorPage/
 │   │   │   ├── index.tsx         # Main page orchestrator
-│   │   │   ├── ConciergePage.tsx
-│   │   │   └── ConciergePage.test.tsx
+│   │   │   ├── AdvisorPage.tsx
+│   │   │   └── AdvisorPage.test.tsx
 │   │   │
 │   │   ├── ChatInterface/
 │   │   │   ├── index.tsx
@@ -181,8 +181,8 @@ agentic-commerce-demo/
 │   ├── force-app/
 │   │   └── main/default/
 │   │       ├── agents/
-│   │       │   └── Beauty_Concierge/
-│   │       │       ├── Beauty_Concierge.agent-meta.xml
+│   │       │   └── Beauty_Advisor/
+│   │       │       ├── Beauty_Advisor.agent-meta.xml
 │   │       │       └── topics/
 │   │       │           ├── ProductDiscovery.agentTopic-meta.xml
 │   │       │           ├── ProductRecommendation.agentTopic-meta.xml
@@ -406,10 +406,10 @@ export interface AgentResponse {
 
 ## Core Components Implementation
 
-### 1. ConciergePage (Main Orchestrator)
+### 1. AdvisorPage (Main Orchestrator)
 
 ```typescript
-// src/components/ConciergePage/ConciergePage.tsx
+// src/components/AdvisorPage/AdvisorPage.tsx
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useScene } from '@/contexts/SceneContext';
@@ -420,7 +420,7 @@ import { ProductShowcase } from '@/components/ProductShowcase';
 import { CheckoutOverlay } from '@/components/CheckoutOverlay';
 import { sceneAnimationVariants } from '@/utils/animations';
 
-export const ConciergePage: React.FC = () => {
+export const AdvisorPage: React.FC = () => {
   const { scene } = useScene();
   const { messages, sendMessage, isAgentTyping } = useConversation();
 
@@ -547,7 +547,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
           className="text-center mb-8"
         >
           <h1 className="text-4xl font-light text-white mb-2">
-            I'm your beauty concierge
+            I'm your beauty advisor
           </h1>
           <p className="text-white/70 text-lg">
             How can I help you today?
@@ -2245,14 +2245,14 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 import { SceneProvider } from '@/contexts/SceneContext';
 import { ConversationProvider } from '@/contexts/ConversationContext';
 import { CustomerProvider } from '@/contexts/CustomerContext';
-import { ConciergePage } from '@/components/ConciergePage';
+import { AdvisorPage } from '@/components/AdvisorPage';
 
 function App() {
   return (
     <CustomerProvider>
       <SceneProvider>
         <ConversationProvider>
-          <ConciergePage />
+          <AdvisorPage />
         </ConversationProvider>
       </SceneProvider>
     </CustomerProvider>

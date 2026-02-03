@@ -1,14 +1,14 @@
 import { SceneProvider } from '@/contexts/SceneContext';
 import { ConversationProvider } from '@/contexts/ConversationContext';
 import { CustomerProvider } from '@/contexts/CustomerContext';
-import { ConciergePage } from '@/components/ConciergePage';
+import { AdvisorPage } from '@/components/AdvisorPage';
 
 function App() {
   return (
     <CustomerProvider>
       <SceneProvider>
         <ConversationProvider>
-          <ConciergePage />
+          <AdvisorPage />
         </ConversationProvider>
       </SceneProvider>
     </CustomerProvider>

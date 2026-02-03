@@ -1,8 +1,8 @@
-# Agentforce Retail Concierge — Architecture & Setup Instructions
+# Agentforce Retail Advisor — Architecture & Setup Instructions
 
 ## Overview
 
-A React/TypeScript/Vite demo that connects to a Salesforce Agentforce agent to deliver an AI-powered beauty retail concierge. The agent recommends products, changes scene contexts, and drives the UI via structured JSON directives embedded in chat responses.
+A React/TypeScript/Vite demo that connects to a Salesforce Agentforce agent to deliver an AI-powered beauty retail advisor. The agent recommends products, changes scene contexts, and drives the UI via structured JSON directives embedded in chat responses.
 
 Key capabilities:
 - **Agentforce Chat** — Real-time conversational agent via Salesforce Einstein AI Agent API
@@ -165,7 +165,7 @@ Set `VITE_USE_MOCK_DATA=false` and configure all Agentforce env vars. The Vite p
 - `src/contexts/CustomerContext.tsx` — Customer profile and preferences
 
 ### Components
-- `src/components/ConciergePage/` — Main page layout
+- `src/components/AdvisorPage/` — Main page layout
 - `src/components/ChatInterface/` — Chat input, messages, suggested actions
 - `src/components/ProductShowcase/` — ProductHero, ProductCard, ProductDetails
 - `src/components/CheckoutOverlay/` — Checkout flow

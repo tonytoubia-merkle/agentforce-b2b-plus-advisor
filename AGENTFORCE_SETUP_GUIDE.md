@@ -1,6 +1,6 @@
-# Agentforce Retail Concierge - API Setup Guide
+# Agentforce Retail Advisor - API Setup Guide
 
-This guide provides step-by-step instructions for setting up all the required API credentials and integrations for the Agentforce Retail Concierge application.
+This guide provides step-by-step instructions for setting up all the required API credentials and integrations for the Agentforce Retail Advisor application.
 
 ## 1. Agentforce Integration Setup
 
@@ -14,8 +14,8 @@ This guide provides step-by-step instructions for setting up all the required AP
 2. **Go to App Manager** (Setup → App Manager)
 3. **Look for "New Connected App" or "Connected Apps"** and click it
 4. **Fill in the following details:**
-   - **Connected App Name**: Agentforce Concierge
-   - **API Name**: AgentforceConcierge
+   - **Connected App Name**: Agentforce Advisor
+   - **API Name**: AgentforceAdvisor
    - **Contact Email**: [Your email address]
 
 5. **Enable OAuth Settings:**
@@ -37,7 +37,7 @@ This guide provides step-by-step instructions for setting up all the required AP
 
 ### Getting Your Agentforce Agent ID
 - Go to Einstein AI → Agents in Salesforce Setup
-- Find your "Beauty Concierge" agent
+- Find your "Beauty Advisor" agent
 - Copy the Agent ID from the URL or agent details page
 
 ### Getting Your Access Token

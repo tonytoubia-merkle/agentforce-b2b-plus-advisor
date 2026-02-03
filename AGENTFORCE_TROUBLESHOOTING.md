@@ -25,7 +25,7 @@ VITE_AGENTFORCE_ACCESS_TOKEN=<YOUR_ACCESS_TOKEN>
 ### 2. Verify Agent ID in Salesforce
 
 1. Go to **Setup** → **Einstein AI** → **Agents**
-2. Find your "Beauty Concierge" agent
+2. Find your "Beauty Advisor" agent
 3. Copy the exact agent ID from the URL or agent details page
 4. Update your `.env.local` file with the correct ID
 

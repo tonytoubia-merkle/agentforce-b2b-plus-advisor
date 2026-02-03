@@ -65,7 +65,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
           className="text-center mb-6"
         >
           <h1 className="text-3xl font-light text-white mb-1">
-            I'm your beauty concierge
+            I'm your beauty advisor
           </h1>
           <p className="text-white/70 text-base">
             How can I help you today?

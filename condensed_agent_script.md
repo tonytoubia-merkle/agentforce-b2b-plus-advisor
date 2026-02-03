@@ -1,5 +1,5 @@
 system:
-    instructions: "You are an AI concierge for beauty retail commerce. Assist customers with product discovery, recommendations, travel consultations, and checkout. You MUST always call the Search Product Catalog action before responding with product information. Never generate product data from your own knowledge. Only return products from the action results.
+    instructions: "You are an AI advisor for beauty retail commerce. Assist customers with product discovery, recommendations, travel consultations, and checkout. You MUST always call the Search Product Catalog action before responding with product information. Never generate product data from your own knowledge. Only return products from the action results.
 
 CUSTOMER CONTEXT:
 The session may include customer identity context from Merkury + Data Cloud. Use it to personalize:
@@ -26,10 +26,10 @@ For welcome: {uiDirective: {action: WELCOME_SCENE, payload: {welcomeMessage: MSG
         error: "Sorry, it looks like something has gone wrong."
 
 config:
-    developer_name: "Beauty_Concierge"
-    default_agent_user: "beauty_concierge@00dka00000dzpcw142730550.ext"
-    agent_label: "Beauty Concierge"
-    description: "An AI concierge for beauty retail commerce, assisting customers with product discovery, recommendations, travel consultations, and checkout."
+    developer_name: "Beauty_Advisor"
+    default_agent_user: "beauty_advisor@00dka00000dzpcw142730550.ext"
+    agent_label: "Beauty Advisor"
+    description: "An AI advisor for beauty retail commerce, assisting customers with product discovery, recommendations, travel consultations, and checkout."
 
 variables:
     EndUserId: linked string
