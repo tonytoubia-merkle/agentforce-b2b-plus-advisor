@@ -3,8 +3,8 @@ import type { SceneSetting, KnownSceneSetting } from '@/types/scene';
 import type { Product } from '@/types/product';
 
 /**
- * Formerra B2B — professional/industrial gradients.
- * Purple tones derived from Formerra brand (#59285D).
+ * Parts B2B — professional/industrial gradients.
+ * Purple tones derived from Parts brand (#59285D).
  * Backgrounds are deliberately understated for B2B.
  */
 const KNOWN_GRADIENTS: Record<KnownSceneSetting, string> = {

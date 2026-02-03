@@ -259,7 +259,7 @@ export const SceneProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         dispatch({
           type: 'SHOW_WELCOME',
           welcomeData: {
-            message: payload.welcomeMessage || 'Welcome to Formerra Plus.',
+            message: payload.welcomeMessage || 'Welcome to Parts Plus.',
             subtext: payload.welcomeSubtext,
           },
         });

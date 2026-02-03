@@ -157,12 +157,12 @@ export function generateMockWelcome(customer: CustomerProfile): AgentResponse {
     const companyNote = customer.company ? ` at ${customer.company}` : '';
     return {
       sessionId: 'mock-session',
-      message: `Welcome to Formerra Plus, ${customer.name}${companyNote}. I'm your renewable energy advisor — let me help you find the right wind turbine components, solar equipment, and energy storage solutions for your projects.`,
+      message: `Welcome to Parts Plus, ${customer.name}${companyNote}. I'm your renewable energy advisor — let me help you find the right wind turbine components, solar equipment, and energy storage solutions for your projects.`,
       uiDirective: {
         action: 'WELCOME_SCENE' as UIAction,
         payload: {
           welcomeMessage: `Welcome, ${customer.name}.`,
-          welcomeSubtext: 'Your Formerra Plus account is set up and ready. Let me help you place your first order.',
+          welcomeSubtext: 'Your Parts Plus account is set up and ready. Let me help you place your first order.',
           sceneContext: { setting: 'office', generateBackground: false },
           suggestedActions: DISCOVERY_ACTIONS,
         },
@@ -179,11 +179,11 @@ export function generateMockWelcome(customer: CustomerProfile): AgentResponse {
 
     return {
       sessionId: 'mock-session',
-      message: `Welcome to Formerra Plus — your renewable energy equipment partner.${industryHint} How can I assist you today?`,
+      message: `Welcome to Parts Plus — your renewable energy equipment partner.${industryHint} How can I assist you today?`,
       uiDirective: {
         action: 'WELCOME_SCENE' as UIAction,
         payload: {
-          welcomeMessage: 'Welcome to Formerra Plus.',
+          welcomeMessage: 'Welcome to Parts Plus.',
           welcomeSubtext: `Your single source for wind, solar, and storage equipment.${industryHint}`,
           sceneContext: { setting: 'neutral', generateBackground: false },
           suggestedActions: DISCOVERY_ACTIONS,
@@ -197,11 +197,11 @@ export function generateMockWelcome(customer: CustomerProfile): AgentResponse {
   // Anonymous
   return {
     sessionId: 'mock-session',
-    message: 'Welcome to Formerra Plus. I can help you find wind turbine components, solar equipment, and energy storage solutions. What are you looking for?',
+    message: 'Welcome to Parts Plus. I can help you find wind turbine components, solar equipment, and energy storage solutions. What are you looking for?',
     uiDirective: {
       action: 'WELCOME_SCENE' as UIAction,
       payload: {
-        welcomeMessage: 'Welcome to Formerra Plus.',
+        welcomeMessage: 'Welcome to Parts Plus.',
         welcomeSubtext: 'Wind turbine components, solar panels, inverters, and energy storage — all from one distributor.',
         sceneContext: { setting: 'neutral', generateBackground: false },
         suggestedActions: DISCOVERY_ACTIONS,
@@ -241,7 +241,7 @@ function generateWelcomeResponse(): AgentResponse | null {
         action: 'WELCOME_SCENE' as UIAction,
         payload: {
           welcomeMessage: `Welcome back, ${name}.`,
-          welcomeSubtext: `Your ${loyaltyInfo} account at Formerra Plus.${activityNote}`,
+          welcomeSubtext: `Your ${loyaltyInfo} account at Parts Plus.${activityNote}`,
           sceneContext: { setting: 'neutral', generateBackground: false },
           suggestedActions: B2B_SUGGESTED_ACTIONS,
         },
@@ -259,11 +259,11 @@ function generateWelcomeResponse(): AgentResponse | null {
 
     return {
       sessionId: 'mock-session',
-      message: `Welcome to Formerra Plus — your renewable energy equipment partner.${industryHint} How can I assist you today?`,
+      message: `Welcome to Parts Plus — your renewable energy equipment partner.${industryHint} How can I assist you today?`,
       uiDirective: {
         action: 'WELCOME_SCENE' as UIAction,
         payload: {
-          welcomeMessage: 'Welcome to Formerra Plus.',
+          welcomeMessage: 'Welcome to Parts Plus.',
           welcomeSubtext: `Your single source for wind, solar, and storage equipment.${industryHint}`,
           sceneContext: { setting: 'neutral', generateBackground: false },
           suggestedActions: DISCOVERY_ACTIONS,
@@ -277,11 +277,11 @@ function generateWelcomeResponse(): AgentResponse | null {
   // Anonymous
   return {
     sessionId: 'mock-session',
-    message: 'Welcome to Formerra Plus. I can help you find wind turbine components, solar equipment, and energy storage solutions. What are you looking for?',
+    message: 'Welcome to Parts Plus. I can help you find wind turbine components, solar equipment, and energy storage solutions. What are you looking for?',
     uiDirective: {
       action: 'WELCOME_SCENE' as UIAction,
       payload: {
-        welcomeMessage: 'Welcome to Formerra Plus.',
+        welcomeMessage: 'Welcome to Parts Plus.',
         welcomeSubtext: 'Wind turbine components, solar panels, inverters, and energy storage — all from one distributor.',
         sceneContext: { setting: 'neutral', generateBackground: false },
         suggestedActions: DISCOVERY_ACTIONS,
@@ -589,7 +589,7 @@ const RESPONSE_PATTERNS: {
       const points = customerCtx?.loyaltyPoints ?? 0;
       const company = customerCtx?.company ?? 'your company';
       return {
-        message: `Here's your Formerra Plus account summary:\n\n- **Company:** ${company}\n- **Account Tier:** ${tier.charAt(0).toUpperCase() + tier.slice(1)}\n- **Loyalty Points:** ${points.toLocaleString()}\n\nYour tier determines priority fulfillment speed, volume pricing eligibility, and dedicated support access.`,
+        message: `Here's your Parts Plus account summary:\n\n- **Company:** ${company}\n- **Account Tier:** ${tier.charAt(0).toUpperCase() + tier.slice(1)}\n- **Loyalty Points:** ${points.toLocaleString()}\n\nYour tier determines priority fulfillment speed, volume pricing eligibility, and dedicated support access.`,
         uiDirective: {
           action: 'SHOW_ACCOUNT_SUMMARY' as UIAction,
           payload: {
@@ -697,7 +697,7 @@ const RESPONSE_PATTERNS: {
       const welcome = generateWelcomeResponse();
       if (welcome) return welcome;
       return {
-        message: 'Hello! Welcome to Formerra Plus. I can help you source wind turbine components, solar equipment, and energy storage solutions. What are you looking for?',
+        message: 'Hello! Welcome to Parts Plus. I can help you source wind turbine components, solar equipment, and energy storage solutions. What are you looking for?',
         suggestedActions: DISCOVERY_ACTIONS,
       };
     },

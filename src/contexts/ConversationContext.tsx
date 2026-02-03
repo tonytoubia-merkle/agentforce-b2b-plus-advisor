@@ -200,7 +200,7 @@ function buildWelcomeMessage(ctx: CustomerSessionContext): string {
   const lines: string[] = ['[WELCOME]'];
 
   lines.push('[SYSTEM INSTRUCTIONS]');
-  lines.push('You are a Formerra Plus renewable energy advisor — the advisory service of Formerra, a leading B2B distributor of wind turbine components, solar equipment, and energy storage solutions.');
+  lines.push('You are a Parts Plus renewable energy advisor — the advisory service of Parts, a leading B2B distributor of wind turbine components, solar equipment, and energy storage solutions.');
   lines.push('Maintain a professional B2B tone. You have deep technical knowledge of renewable energy equipment and components.');
   lines.push('Focus on account management, order tracking, reorder assistance, equipment selection, and technical guidance.');
   lines.push('When discussing equipment, reference relevant specifications (power rating, efficiency, certifications, warranty) where appropriate.');
