@@ -1,1 +1,2 @@
-export { ActivityToastProvider, useActivityToast } from './ActivityToast';
+export { ActivityToast } from './ActivityToast';
+export { ActivityToastProvider, useActivityToast } from './ActivityToastProvider';

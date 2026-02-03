@@ -2,36 +2,36 @@ import type { SceneSetting } from '@/types/scene';
 
 export const SCENE_PROMPTS: Record<SceneSetting, string> = {
   neutral:
-    'Elegant minimalist empty surface with soft bokeh lights in the background, sophisticated neutral tones, studio lighting, clean uncluttered space',
+    'Clean modern workspace with soft ambient lighting, neutral gray and white tones, professional atmosphere, empty surface',
 
-  bathroom:
-    'Luxurious modern bathroom counter with white marble surface, soft natural morning light streaming through a frosted window, potted eucalyptus plant, high-end spa aesthetic, empty counter with no products or bottles',
+  warehouse:
+    'Modern distribution warehouse interior with tall metal shelving, clean concrete floors, overhead LED lighting, organized pallets in the background, empty foreground surface',
 
-  travel:
-    'Stylish hotel room with a leather carry-on suitcase on a bed, warm golden hour light, passport and boarding pass visible, wanderlust travel aesthetic, no toiletries or products visible',
+  factory:
+    'Clean modern manufacturing floor with injection molding machines in the background, bright industrial lighting, organized production environment, empty foreground',
 
-  outdoor:
-    'Fresh outdoor wooden table with lush green foliage, morning dew on leaves, dappled sunlight, healthy active lifestyle setting, empty table surface with no objects',
-
-  lifestyle:
-    'Sophisticated vanity dresser with round mirror, soft pink and cream tones, natural daylight from a large window, clean empty surface with no products or cosmetics',
-
-  bedroom:
-    'Cozy bedroom nightstand with warm amber lamp light, soft linen textures, dark moody evening atmosphere, a small empty tray on the nightstand, no products or bottles',
-
-  vanity:
-    'Glamorous makeup vanity station with Hollywood mirror lights, velvet blush-pink seat, clean marble countertop, warm flattering light, empty surface with no cosmetics',
-
-  gym:
-    'Modern gym locker room shelf, clean concrete and brushed metal surfaces, bright even overhead lighting, a folded white towel nearby, empty shelf with no bottles or products',
+  lab:
+    'Modern materials testing laboratory with white surfaces, analytical instruments in the background, bright even lighting, clean scientific environment',
 
   office:
-    'Minimalist modern office desk near a large window, natural daylight, clean white surface with a small plant, calm productive atmosphere, empty desk with no objects',
+    'Minimalist modern office with large window, natural daylight, clean desk surface with a small plant, calm productive atmosphere',
+
+  'loading-dock':
+    'Commercial loading dock with semi-trailer backed up, organized pallets, bright daylight from the open bay door, industrial distribution setting',
+
+  cleanroom:
+    'ISO cleanroom interior with white walls and ceiling, HEPA filtration units visible, bright sterile lighting, gowning area in the background',
+
+  'production-floor':
+    'Active production floor with extrusion lines in the background, overhead cranes, organized material bins, industrial lighting',
+
+  conference:
+    'Modern corporate conference room with glass walls, large screen on the wall, clean table surface, professional business setting',
 };
 
 export function buildScenePrompt(setting: SceneSetting): string {
   const base = SCENE_PROMPTS[setting];
-  return `${base}. Empty background scene only, no products, no bottles, no cosmetics, no text or labels. Professional interior photography, elegant and luxurious atmosphere, soft diffused shadows, ultra high quality, photorealistic.`;
+  return `${base}. Empty background scene only, no products, no people, no text or labels. Professional industrial photography, clean and organized, soft diffused shadows, ultra high quality, photorealistic.`;
 }
 
 /**
@@ -41,31 +41,31 @@ export function buildScenePrompt(setting: SceneSetting): string {
  */
 export const STAGING_PROMPTS: Record<SceneSetting, string> = {
   neutral:
-    'A single elegant skincare bottle, soft studio lighting from above and side, subtle shadow beneath the product',
+    'A single plastic resin pellet sample or material package, soft studio lighting from above and side, subtle shadow beneath',
 
-  bathroom:
-    'A single elegant skincare bottle with a slight dewy moisture effect on the surface, soft diffused lighting',
+  warehouse:
+    'A single bag or box of plastic resin pellets, clean studio lighting, industrial product photography',
 
-  travel:
-    'A single compact travel-size skincare bottle, clean studio lighting, slight reflection on surface',
+  factory:
+    'A single container of engineering resin material, bright even studio lighting, crisp industrial product shot',
 
-  outdoor:
-    'A single elegant skincare bottle with a fresh natural feel, bright even studio lighting, crisp and clean',
-
-  lifestyle:
-    'A single luxurious skincare bottle, warm soft studio lighting, gentle highlight on the cap, slight reflection',
-
-  bedroom:
-    'A single elegant skincare bottle with warm amber tones, soft intimate lighting, gentle glow on the surface',
-
-  vanity:
-    'A single beauty product with glamorous lighting, Hollywood mirror-style illumination, flattering warm glow',
-
-  gym:
-    'A single compact product bottle, bright clean lighting, modern minimal aesthetic, crisp shadows',
+  lab:
+    'A single sample container of polymer material, bright clean laboratory lighting, scientific product photography',
 
   office:
-    'A single minimalist beauty product, clean natural daylight, subtle shadow, professional product shot',
+    'A single product specification sheet or material sample, clean natural daylight, professional product shot',
+
+  'loading-dock':
+    'A single pallet of bagged resin material, clean studio lighting, distribution product photography',
+
+  cleanroom:
+    'A single sealed container of high-purity polymer material, bright sterile lighting, cleanroom product photography',
+
+  'production-floor':
+    'A single gaylord box of resin pellets, bright industrial lighting, production material photography',
+
+  conference:
+    'A single material sample set or product brochure, clean professional lighting, business product photography',
 };
 
 export function buildStagingPrompt(setting: SceneSetting): string {

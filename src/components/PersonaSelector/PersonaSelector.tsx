@@ -31,8 +31,8 @@ function buildTraits(profile: CustomerProfile): string[] {
     return traits.slice(0, 5);
   }
 
-  if (profile.beautyProfile.skinType && profile.beautyProfile.skinType !== 'normal') {
-    traits.push(`${profile.beautyProfile.skinType.charAt(0).toUpperCase() + profile.beautyProfile.skinType.slice(1)} skin`);
+  if (profile.beautyProfile?.industry) {
+    traits.push(profile.beautyProfile.industry);
   }
 
   const orderCount = profile.orders?.length || 0;
@@ -46,8 +46,8 @@ function buildTraits(profile: CustomerProfile): string[] {
     traits.push('Not a loyalty member');
   }
 
-  if (profile.beautyProfile.concerns?.length) {
-    traits.push(profile.beautyProfile.concerns[0].charAt(0).toUpperCase() + profile.beautyProfile.concerns[0].slice(1));
+  if (profile.beautyProfile?.primaryApplications?.length) {
+    traits.push(profile.beautyProfile.primaryApplications[0]);
   }
 
   if (profile.meaningfulEvents?.length) {

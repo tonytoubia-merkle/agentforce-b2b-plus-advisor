@@ -1,6 +1,9 @@
 import type { AgentResponse, UIAction } from '@/types/agent';
-import type { CustomerSessionContext } from '@/types/customer';
+import type { CustomerSessionContext, CustomerProfile } from '@/types/customer';
+import type { Product } from '@/types/product';
 import { MOCK_PRODUCTS } from '@/mocks/products';
+
+// ─── Conversation State ──────────────────────────────────────────
 
 interface ConversationState {
   lastShownProductIds: string[];
@@ -41,34 +44,175 @@ export function restoreMockAgentSnapshot(snapshot: MockAgentSnapshot): void {
   customerCtx = snapshot.customerCtx;
 }
 
+// ─── Helpers ─────────────────────────────────────────────────────
+
 const findProduct = (id: string) => MOCK_PRODUCTS.find((p) => p.id === id);
 
-// ─── Subtle enrichment probes ────────────────────────────────────
-// Maps missing profile fields to conversationally natural follow-up prompts.
-// The agent slips one of these into suggested actions to capture profile data.
-const ENRICHMENT_PROBES: Record<string, string[]> = {
-  'Birthday': ['Any special occasions coming up?'],
-  'Anniversary': ['Shopping for someone special?', 'Any celebrations on the horizon?'],
-  'Morning routine': ['How much time do you usually have in the morning?'],
-  'Exercise': ['Do you work out regularly? It can affect your skin!'],
-  'Work environment': ['Do you work indoors or outdoors? Helps me pick the right SPF.'],
-  'Beauty priority': ['What matters most to you in skincare?'],
-  'Price sensitivity': ['Do you have a budget in mind?'],
-};
+const B2B_SUGGESTED_ACTIONS = [
+  'Track my orders',
+  'Reorder equipment',
+  'Browse wind turbine components',
+  'Request a quote',
+  'Check lead times',
+];
 
-/** Pick a subtle enrichment probe based on missing fields, or null if none relevant. */
-function getEnrichmentProbe(): string | null {
-  const missing = customerCtx?.missingProfileFields;
-  if (!missing?.length) return null;
-  // Pick a random missing field that has probes
-  const candidates = missing.filter((f) => ENRICHMENT_PROBES[f]);
-  if (!candidates.length) return null;
-  const field = candidates[Math.floor(Math.random() * candidates.length)];
-  const probes = ENRICHMENT_PROBES[field];
-  return probes[Math.floor(Math.random() * probes.length)];
+const DISCOVERY_ACTIONS = [
+  'Browse solar panels',
+  'Show wind turbine components',
+  'Explore energy storage',
+  'Request a quote',
+];
+
+function formatPrice(price: number): string {
+  if (price >= 1000) {
+    return `$${price.toLocaleString('en-US')}`;
+  }
+  return `$${price.toFixed(2)}`;
 }
 
-// ─── Personalized welcome responses ───────────────────────────────
+function getOpenOrders(customer: CustomerProfile | null): CustomerProfile['orders'] {
+  if (!customer) return [];
+  return (customer.orders || []).filter(
+    (o) => o.status === 'processing' || o.status === 'shipped' || o.status === 'in-transit' || o.status === 'backordered'
+  );
+}
+
+function getRecentCompletedOrders(customer: CustomerProfile | null, limit = 3): CustomerProfile['orders'] {
+  if (!customer) return [];
+  return (customer.orders || [])
+    .filter((o) => o.status === 'completed')
+    .sort((a, b) => b.orderDate.localeCompare(a.orderDate))
+    .slice(0, limit);
+}
+
+function getAccountTierLabel(customer: CustomerProfile | null): string {
+  if (!customer?.loyalty) return 'Standard';
+  return customer.loyalty.tier.charAt(0).toUpperCase() + customer.loyalty.tier.slice(1);
+}
+
+function matchProducts(query: string, products: Product[] = MOCK_PRODUCTS): Product[] {
+  const q = query.toLowerCase();
+  return products.filter((p) => {
+    const searchable = [
+      p.name,
+      p.brand,
+      p.category,
+      p.description,
+      p.shortDescription,
+      ...(p.attributes.industries || []),
+      ...(p.attributes.certifications || []),
+      ...(p.attributes.processingMethod || []),
+    ]
+      .join(' ')
+      .toLowerCase();
+    return searchable.includes(q);
+  });
+}
+
+// ─── generateMockWelcome ─────────────────────────────────────────
+
+export function generateMockWelcome(customer: CustomerProfile): AgentResponse {
+  const tier = customer.merkuryIdentity?.identityTier ?? 'anonymous';
+  const openOrders = getOpenOrders(customer);
+  const recentOrders = getRecentCompletedOrders(customer);
+  const accountTier = getAccountTierLabel(customer);
+
+  // Known customer with orders
+  if (tier === 'known' && (openOrders.length > 0 || recentOrders.length > 0)) {
+    const openCount = openOrders.length;
+    const recentCount = recentOrders.length;
+    const companyNote = customer.company ? ` at ${customer.company}` : '';
+
+    let subtext = '';
+    if (openCount > 0) {
+      subtext = `You have ${openCount} open order${openCount > 1 ? 's' : ''} in progress.`;
+      if (accountTier !== 'Standard') {
+        subtext += ` Your ${accountTier} account includes priority fulfillment.`;
+      }
+    } else {
+      const lastOrder = recentOrders[0];
+      const lastItem = lastOrder.lineItems[0]?.productName ?? 'your last order';
+      subtext = `Your most recent shipment of ${lastItem} was delivered ${lastOrder.orderDate}. Ready to reorder?`;
+    }
+
+    return {
+      sessionId: 'mock-session',
+      message: `Welcome back, ${customer.name}${companyNote}. Your ${accountTier} account is in good standing. How can I help you today?`,
+      uiDirective: {
+        action: 'WELCOME_SCENE' as UIAction,
+        payload: {
+          welcomeMessage: `Welcome back, ${customer.name}.`,
+          welcomeSubtext: subtext,
+          sceneContext: { setting: 'neutral', generateBackground: false },
+          suggestedActions: B2B_SUGGESTED_ACTIONS,
+        },
+      },
+      suggestedActions: B2B_SUGGESTED_ACTIONS,
+      confidence: 0.97,
+    };
+  }
+
+  // Known customer without orders
+  if (tier === 'known') {
+    const companyNote = customer.company ? ` at ${customer.company}` : '';
+    return {
+      sessionId: 'mock-session',
+      message: `Welcome to Formerra Plus, ${customer.name}${companyNote}. I'm your renewable energy advisor — let me help you find the right wind turbine components, solar equipment, and energy storage solutions for your projects.`,
+      uiDirective: {
+        action: 'WELCOME_SCENE' as UIAction,
+        payload: {
+          welcomeMessage: `Welcome, ${customer.name}.`,
+          welcomeSubtext: 'Your Formerra Plus account is set up and ready. Let me help you place your first order.',
+          sceneContext: { setting: 'office', generateBackground: false },
+          suggestedActions: DISCOVERY_ACTIONS,
+        },
+      },
+      suggestedActions: DISCOVERY_ACTIONS,
+      confidence: 0.95,
+    };
+  }
+
+  // Appended — resolved identity but no direct relationship
+  if (tier === 'appended') {
+    const industry = customer.appendedProfile?.industryVertical;
+    const industryHint = industry ? ` We work with leading ${industry.toLowerCase()} companies to source the right equipment.` : '';
+
+    return {
+      sessionId: 'mock-session',
+      message: `Welcome to Formerra Plus — your renewable energy equipment partner.${industryHint} How can I assist you today?`,
+      uiDirective: {
+        action: 'WELCOME_SCENE' as UIAction,
+        payload: {
+          welcomeMessage: 'Welcome to Formerra Plus.',
+          welcomeSubtext: `Your single source for wind, solar, and storage equipment.${industryHint}`,
+          sceneContext: { setting: 'neutral', generateBackground: false },
+          suggestedActions: DISCOVERY_ACTIONS,
+        },
+      },
+      suggestedActions: DISCOVERY_ACTIONS,
+      confidence: 0.90,
+    };
+  }
+
+  // Anonymous
+  return {
+    sessionId: 'mock-session',
+    message: 'Welcome to Formerra Plus. I can help you find wind turbine components, solar equipment, and energy storage solutions. What are you looking for?',
+    uiDirective: {
+      action: 'WELCOME_SCENE' as UIAction,
+      payload: {
+        welcomeMessage: 'Welcome to Formerra Plus.',
+        welcomeSubtext: 'Wind turbine components, solar panels, inverters, and energy storage — all from one distributor.',
+        sceneContext: { setting: 'neutral', generateBackground: false },
+        suggestedActions: DISCOVERY_ACTIONS,
+      },
+    },
+    suggestedActions: DISCOVERY_ACTIONS,
+    confidence: 0.85,
+  };
+}
+
+// ─── Internal welcome (uses customerCtx set via setMockCustomerContext) ───
 
 function generateWelcomeResponse(): AgentResponse | null {
   if (state.hasGreeted) return null;
@@ -77,577 +221,121 @@ function generateWelcomeResponse(): AgentResponse | null {
   if (!customerCtx) return null;
 
   const tier = customerCtx.identityTier;
+  const name = customerCtx.name;
+  const company = customerCtx.company;
 
   if (tier === 'known') {
-    // Check for meaningful events and context from the richer data
-    const hasTripEvent = customerCtx.meaningfulEvents?.some((e) => e.includes('Mumbai') || e.includes('trip'));
-    const hasAnniversary = customerCtx.meaningfulEvents?.some((e) => e.toLowerCase().includes('anniversary'));
-    const hasBrowseFragrance = customerCtx.browseInterests?.some((b) => b.includes('fragrance'));
-    const hasBrowseSerum = customerCtx.browseInterests?.some((b) => b.includes('serum'));
+    const companyNote = company ? ` at ${company}` : '';
     const loyaltyInfo = customerCtx.loyaltyTier
-      ? `${customerCtx.loyaltyTier} member${customerCtx.loyaltyPoints ? ` with ${customerCtx.loyaltyPoints.toLocaleString()} points` : ''}`
-      : null;
-    const isNotLoyalty = !customerCtx.loyaltyTier;
+      ? `${customerCtx.loyaltyTier.charAt(0).toUpperCase() + customerCtx.loyaltyTier.slice(1)}`
+      : 'Standard';
+    const hasActivity = (customerCtx.recentActivity?.length ?? 0) > 0;
+    const activityNote = hasActivity
+      ? ' I can see some recent order activity on your account.'
+      : '';
 
-    // Sarah-like: known + trip + loyalty
-    if (hasTripEvent && loyaltyInfo) {
-      return {
-        sessionId: 'mock-session',
-        message: `Welcome back, ${customerCtx.name}! How was Mumbai? As a ${loyaltyInfo}, you've earned some rewards while you were away.`,
-        uiDirective: {
-          action: 'WELCOME_SCENE' as UIAction,
-          payload: {
-            welcomeMessage: `Welcome back, ${customerCtx.name}!`,
-            welcomeSubtext: `Your travel SPF is probably running low after that trip. Let me help you restock — and you have rewards to redeem!`,
-            sceneContext: {
-              setting: 'lifestyle',
-              mood: 'warm-travel-return',
-              generateBackground: true,
-              backgroundPrompt: 'Warm golden hour luxury lifestyle setting, welcoming atmosphere, soft ambient light, travel memories, elegant beauty space',
-            },
-          },
-        },
-        suggestedActions: ['Restock my travel essentials', "What's new since I've been away?", 'Show me evening skincare'],
-        confidence: 0.98,
-      };
-    }
-
-    // James-like: known + anniversary + browsing fragrances + no loyalty
-    if (hasAnniversary && hasBrowseFragrance) {
-      const enrollText = isNotLoyalty
-        ? " Also, I'd love to tell you about our loyalty program — you'd earn points on every purchase."
-        : '';
-      return {
-        sessionId: 'mock-session',
-        message: `Welcome back, ${customerCtx.name}! I see you've been browsing fragrances — shopping for something special?${enrollText}`,
-        uiDirective: {
-          action: 'WELCOME_SCENE' as UIAction,
-          payload: {
-            welcomeMessage: `Welcome back, ${customerCtx.name}!`,
-            welcomeSubtext: `I noticed you've been looking at fragrances. I can help you find the perfect gift.${isNotLoyalty ? ' Plus, join our loyalty program today and earn points!' : ''}`,
-            sceneContext: {
-              setting: 'bedroom',
-              mood: 'elegant-gifting',
-              generateBackground: true,
-              backgroundPrompt: 'Elegant intimate bedroom setting, soft evening light, luxury fragrance display atmosphere, romantic gift-giving mood',
-            },
-          },
-        },
-        suggestedActions: ['Show me fragrances', 'Help me find a gift', isNotLoyalty ? 'Tell me about loyalty' : 'Restock my cleanser'],
-        confidence: 0.96,
-      };
-    }
-
-    // Maya-like: known + platinum + had a return + makeup focus
-    const hasReturnEvent = customerCtx.meaningfulEvents?.some((e) => e.toLowerCase().includes('return'));
-    const hasBrowseMakeup = customerCtx.browseInterests?.some((b) => /foundation|blush|makeup|lipstick|mascara/.test(b));
-    if (hasReturnEvent && loyaltyInfo) {
-      return {
-        sessionId: 'mock-session',
-        message: `Welcome back, ${customerCtx.name}! As a ${loyaltyInfo}, I wanted to follow up — I have some lighter alternatives that might be a better fit for you.`,
-        uiDirective: {
-          action: 'WELCOME_SCENE' as UIAction,
-          payload: {
-            welcomeMessage: `Welcome back, ${customerCtx.name}!`,
-            welcomeSubtext: `I remember you returned something that wasn't quite right. Let me find you something better — plus you have rewards to redeem!`,
-            sceneContext: {
-              setting: 'vanity',
-              mood: 'elegant-makeup',
-              generateBackground: true,
-              backgroundPrompt: 'Luxurious makeup vanity setting, soft glamorous lighting, high-end beauty atmosphere, warm and inviting',
-            },
-          },
-        },
-        suggestedActions: ['Show me lighter serums', 'Restock my makeup', 'What\'s new?'],
-        confidence: 0.97,
-      };
-    }
-
-    // Marcus-like: known + beginner + no loyalty + recent first order
-    const isBeginnerEvent = customerCtx.meaningfulEvents?.some((e) => e.toLowerCase().includes('beginner'));
-    if (isBeginnerEvent && isNotLoyalty) {
-      return {
-        sessionId: 'mock-session',
-        message: `Hey ${customerCtx.name}! Great to see you back. How's the cleanser working out? Ready to add the next step to your routine?`,
-        uiDirective: {
-          action: 'WELCOME_SCENE' as UIAction,
-          payload: {
-            welcomeMessage: `Welcome back, ${customerCtx.name}!`,
-            welcomeSubtext: `Let's build on your new routine. I'll keep it simple — just one step at a time.`,
-            sceneContext: {
-              setting: 'bathroom',
-              mood: 'fresh-start',
-              generateBackground: true,
-              backgroundPrompt: 'Clean modern bathroom setting, bright natural light, minimalist beauty space, fresh and inviting',
-            },
-          },
-        },
-        suggestedActions: ['What should I add next?', 'Show me moisturizers', 'Build me a simple routine'],
-        confidence: 0.96,
-      };
-    }
-
-    // Generic known with browse context
-    if (hasBrowseSerum || hasBrowseFragrance || hasBrowseMakeup) {
-      const browseContext = hasBrowseFragrance ? 'fragrances' : hasBrowseMakeup ? 'makeup' : 'serums';
-      const setting = hasBrowseFragrance ? 'bedroom' : hasBrowseMakeup ? 'vanity' : 'lifestyle';
-      return {
-        sessionId: 'mock-session',
-        message: `Welcome back, ${customerCtx.name}! I noticed you were looking at ${browseContext} recently.`,
-        uiDirective: {
-          action: 'WELCOME_SCENE' as UIAction,
-          payload: {
-            welcomeMessage: `Welcome back, ${customerCtx.name}!`,
-            welcomeSubtext: `I noticed you were browsing ${browseContext} recently. Shall I pick up where we left off?`,
-            sceneContext: {
-              setting,
-              mood: 'personalized-return',
-              generateBackground: true,
-              backgroundPrompt: hasBrowseFragrance
-                ? 'Elegant intimate bedroom setting, soft evening light, luxury fragrance display atmosphere'
-                : hasBrowseMakeup
-                  ? 'Luxurious makeup vanity setting, soft glamorous lighting, high-end beauty atmosphere'
-                  : 'Sophisticated lifestyle beauty setting, warm natural light, luxury skincare atmosphere',
-            },
-          },
-        },
-        suggestedActions: [
-          browseContext === 'fragrances' ? 'Show me fragrances' : browseContext === 'makeup' ? 'Show me makeup' : 'Show me serums',
-          'Recommend something new',
-          'Restock my favorites',
-        ],
-        confidence: 0.96,
-      };
-    }
-
-    // Known customer, generic welcome
-    const loyaltySubtext = loyaltyInfo
-      ? `As a ${loyaltyInfo}, you have early access to our new arrivals.`
-      : isNotLoyalty
-        ? "Let me help you discover something perfect today. Have you considered joining our loyalty program?"
-        : "Let me help you discover something perfect today.";
     return {
       sessionId: 'mock-session',
-      message: `Welcome back, ${customerCtx.name}! Great to see you again.`,
+      message: `Welcome back, ${name}${companyNote}. Your ${loyaltyInfo} account is in good standing.${activityNote} How can I help you today?`,
       uiDirective: {
         action: 'WELCOME_SCENE' as UIAction,
         payload: {
-          welcomeMessage: `Welcome back, ${customerCtx.name}!`,
-          welcomeSubtext: loyaltySubtext,
-          sceneContext: {
-            setting: 'lifestyle',
-            mood: 'personalized-welcome',
-            generateBackground: true,
-            backgroundPrompt: 'Elegant luxury beauty lifestyle setting, warm welcoming atmosphere, soft golden light',
-          },
+          welcomeMessage: `Welcome back, ${name}.`,
+          welcomeSubtext: `Your ${loyaltyInfo} account at Formerra Plus.${activityNote}`,
+          sceneContext: { setting: 'neutral', generateBackground: false },
+          suggestedActions: B2B_SUGGESTED_ACTIONS,
         },
       },
-      suggestedActions: ['Show me what\'s new', 'Restock my favorites', 'Build me a routine'],
-      confidence: 0.95,
+      suggestedActions: B2B_SUGGESTED_ACTIONS,
+      confidence: 0.97,
     };
   }
 
   if (tier === 'appended') {
-    // Appended tier: Merkury resolved identity and appended demographic/interest data,
-    // but this person never gave us their info directly. We must NOT:
-    //   - Greet by name (they didn't tell us their name)
-    //   - Reference specific interests directly ("I see you like wellness")
-    //   - Reveal we know anything about them
-    // We CAN subtly use appended signals to:
-    //   - Curate which products we lead with
-    //   - Choose an appropriate scene/mood
-    //   - Tailor suggested actions toward likely interests
-    const interests = customerCtx.appendedInterests || [];
-    const isWellness = interests.some((i) => i.includes('wellness') || i.includes('yoga'));
-    const isClean = interests.some((i) => i.includes('clean'));
-    const isAntiAging = interests.some((i) => i.includes('anti-aging') || i.includes('spa'));
-    const isLuxury = interests.some((i) => i.includes('luxury'));
+    const industry = customerCtx.industry;
+    const industryHint = industry
+      ? ` We partner with leading ${industry.toLowerCase()} companies to source the right equipment.`
+      : '';
 
-    // Priya-like: anti-aging + luxury + spa — lead with premium, don't say why
-    if (isAntiAging && isLuxury) {
-      return {
-        sessionId: 'mock-session',
-        message: "Welcome! We have some incredible new arrivals this season. I'd love to help you find something perfect.",
-        uiDirective: {
-          action: 'WELCOME_SCENE' as UIAction,
-          payload: {
-            welcomeMessage: 'Welcome!',
-            welcomeSubtext: "Discover our latest collection — from targeted treatments to everyday essentials.",
-            sceneContext: {
-              setting: 'neutral',
-              generateBackground: false,
-            },
-          },
-        },
-        // Subtly surface anti-aging and premium options without saying "we know you want this"
-        suggestedActions: ['Show me your bestsellers', "What's trending in skincare?", 'Help me build a routine'],
-        confidence: 0.9,
-      };
-    }
-
-    // Aisha-like: clean beauty + wellness — set a calming tone, don't reference interests
     return {
       sessionId: 'mock-session',
-      message: "Welcome! I'm here to help you discover something you'll love. What are you looking for today?",
+      message: `Welcome to Formerra Plus — your renewable energy equipment partner.${industryHint} How can I assist you today?`,
       uiDirective: {
         action: 'WELCOME_SCENE' as UIAction,
         payload: {
-          welcomeMessage: 'Welcome!',
-          welcomeSubtext: "Your personal beauty advisor — let's find your perfect match.",
-          sceneContext: {
-            setting: 'neutral',
-            generateBackground: false,
-          },
+          welcomeMessage: 'Welcome to Formerra Plus.',
+          welcomeSubtext: `Your single source for wind, solar, and storage equipment.${industryHint}`,
+          sceneContext: { setting: 'neutral', generateBackground: false },
+          suggestedActions: DISCOVERY_ACTIONS,
         },
       },
-      // Subtly steer toward likely interests without being explicit
-      suggestedActions: [
-        isClean ? 'Show me clean beauty brands' : 'Show me skincare',
-        isWellness ? 'Help me build a routine' : 'What do you recommend?',
-        'Show me bestsellers',
-      ],
-      confidence: 0.9,
+      suggestedActions: DISCOVERY_ACTIONS,
+      confidence: 0.90,
     };
   }
 
   // Anonymous
   return {
     sessionId: 'mock-session',
-    message: "Welcome to your personal beauty advisor! What can I help you discover today?",
+    message: 'Welcome to Formerra Plus. I can help you find wind turbine components, solar equipment, and energy storage solutions. What are you looking for?',
     uiDirective: {
       action: 'WELCOME_SCENE' as UIAction,
       payload: {
-        welcomeMessage: 'Welcome!',
-        welcomeSubtext: 'Your personal beauty advisor is ready to help you discover something perfect.',
-        sceneContext: {
-          setting: 'neutral',
-          mood: 'elegant-welcome',
-          generateBackground: false,
-        },
+        welcomeMessage: 'Welcome to Formerra Plus.',
+        welcomeSubtext: 'Wind turbine components, solar panels, inverters, and energy storage — all from one distributor.',
+        sceneContext: { setting: 'neutral', generateBackground: false },
+        suggestedActions: DISCOVERY_ACTIONS,
       },
     },
-    suggestedActions: ['Show me moisturizers', 'I need travel products', 'What do you recommend?'],
+    suggestedActions: DISCOVERY_ACTIONS,
     confidence: 0.85,
   };
 }
 
-// ─── Standard response patterns ───────────────────────────────────
+// ─── Response patterns ───────────────────────────────────────────
 
 const RESPONSE_PATTERNS: {
   pattern: RegExp;
   response: () => Partial<AgentResponse>;
 }[] = [
+  // Order status / tracking
   {
-    pattern: /cleanser|wash|face wash|cleanse/i,
+    pattern: /order|track|shipment|delivery|shipping|where.?s my/i,
     response: () => {
-      const product = findProduct('cleanser-gentle')!;
-      state.currentProductId = product.id;
-      state.shownCategories.push('cleanser');
-      return {
-        message: `I'd recommend our ${product.name}. It's a creamy, sulfate-free formula that removes impurities without stripping your skin. Great for daily use!`,
-        uiDirective: {
-          action: 'SHOW_PRODUCT' as UIAction,
-          payload: {
-            products: [product],
-            sceneContext: { setting: 'bathroom' as const, generateBackground: false },
-          },
-        },
-        suggestedActions: ['Add to bag', 'Show me something for acne', 'What else do you have?'],
-      };
-    },
-  },
-  {
-    pattern: /moisturizer|hydrat|dry skin|sensitive/i,
-    response: () => {
-      const product = findProduct('moisturizer-sensitive')!;
-      state.currentProductId = product.id;
-      state.shownCategories.push('moisturizer');
-      return {
-        message: "I'd recommend our Hydra-Calm Sensitive Moisturizer. It's specifically formulated for sensitive skin with soothing centella and hyaluronic acid.",
-        uiDirective: {
-          action: 'SHOW_PRODUCT' as UIAction,
-          payload: {
-            products: [product],
-            sceneContext: { setting: 'bathroom' as const, generateBackground: false },
-          },
-        },
-        suggestedActions: ['Add to bag', 'Tell me about the ingredients', 'Show me serums instead'],
-      };
-    },
-  },
-  {
-    pattern: /serum|vitamin c|brightening|bright/i,
-    response: () => {
-      const serums = MOCK_PRODUCTS.filter((p) => p.category === 'serum');
-      state.lastShownProductIds = serums.map((p) => p.id);
-      state.shownCategories.push('serum');
-      return {
-        message: "We have some incredible serums! Our Vitamin C is perfect for brightening, the Retinol works overnight for fine lines, the Peptide Lift is our most advanced anti-aging, and the Niacinamide is great for pores and oil control.",
-        uiDirective: {
-          action: 'SHOW_PRODUCTS' as UIAction,
-          payload: {
-            products: serums,
-            sceneContext: { setting: 'lifestyle' as const, generateBackground: false },
-          },
-        },
-        suggestedActions: ['Tell me about Vitamin C', 'I want the retinol', 'What about peptides?'],
-      };
-    },
-  },
-  {
-    pattern: /sunscreen|spf|sun protect|uv/i,
-    response: () => {
-      const products = MOCK_PRODUCTS.filter((p) => p.category === 'sunscreen');
-      state.lastShownProductIds = products.map((p) => p.id);
-      state.shownCategories.push('sunscreen');
-      return {
-        message: "Sun protection is essential! Our Invisible Shield SPF 50 is ultra-lightweight with zero white cast — perfect for daily wear. For sensitive or acne-prone skin, try our Barrier Shield Mineral SPF 40.",
-        uiDirective: {
-          action: 'SHOW_PRODUCTS' as UIAction,
-          payload: {
-            products,
-            sceneContext: { setting: 'outdoor' as const, generateBackground: false },
-          },
-        },
-        suggestedActions: ['Add to bag', 'Show me travel products', 'What about moisturizers?'],
-      };
-    },
-  },
-  {
-    pattern: /acne|breakout|pimple|blemish/i,
-    response: () => {
-      const products = [findProduct('cleanser-acne')!, findProduct('serum-niacinamide')!, findProduct('spot-treatment')!];
-      state.lastShownProductIds = products.map((p) => p.id);
-      state.shownCategories.push('cleanser');
-      return {
-        message: "For acne-prone skin, here's a targeted trio: our Salicylic Cleanser to unclog pores, the Niacinamide Serum to calm and refine, and SOS Blemish Patches for overnight spot treatment.",
-        uiDirective: {
-          action: 'SHOW_PRODUCTS' as UIAction,
-          payload: {
-            products,
-            sceneContext: { setting: 'bathroom' as const, generateBackground: false },
-          },
-        },
-        suggestedActions: ['Get all three', 'Just the cleanser', 'What moisturizer for oily skin?'],
-      };
-    },
-  },
-  {
-    pattern: /retinol|anti.?aging|wrinkle|fine line|firm|lift/i,
-    response: () => {
-      const products = [findProduct('serum-retinol')!, findProduct('serum-anti-aging')!, findProduct('eye-cream')!];
-      state.lastShownProductIds = products.map((p) => p.id);
-      state.shownCategories.push('serum');
-      return {
-        message: "For anti-aging, I'd recommend our Midnight Renewal Retinol for overnight cell turnover, the Peptide Lift Pro for daytime firming, and our Bright Eyes Caffeine Cream for the delicate eye area.",
-        uiDirective: {
-          action: 'SHOW_PRODUCTS' as UIAction,
-          payload: {
-            products,
-            sceneContext: { setting: 'lifestyle' as const, generateBackground: false },
-          },
-        },
-        suggestedActions: ['Get all three', 'Tell me more about retinol', 'Just the peptide serum'],
-      };
-    },
-  },
-  {
-    pattern: /routine|regimen|skincare routine|full routine/i,
-    response: () => {
-      const routine = [
-        findProduct('cleanser-gentle')!,
-        findProduct('toner-aha')!,
-        findProduct('serum-vitamin-c')!,
-        findProduct('moisturizer-sensitive')!,
-        findProduct('sunscreen-lightweight')!,
-      ];
-      state.lastShownProductIds = routine.map((p) => p.id);
-      return {
-        message: "Here's a complete morning routine: Cleanse with Cloud Cream, tone with our AHA Glow Tonic, treat with Vitamin C Serum, moisturize with Hydra-Calm, and protect with SPF 50. Five steps to radiant skin!",
-        uiDirective: {
-          action: 'SHOW_PRODUCTS' as UIAction,
-          payload: {
-            products: routine,
-            sceneContext: { setting: 'bathroom' as const, generateBackground: false },
-          },
-        },
-        suggestedActions: ['Get the full routine', 'Customize for my skin type', 'What about nighttime?'],
-      };
-    },
-  },
-  {
-    pattern: /evening|night routine|candlelight|warm light|wind down/i,
-    response: () => {
-      const products = [findProduct('cleanser-gentle')!, findProduct('serum-retinol')!, findProduct('mask-hydrating')!];
-      state.lastShownProductIds = products.map((p) => p.id);
-      return {
-        message: "Here's a calming evening routine: gentle cleanse, retinol serum for overnight renewal, and our hydrating sleep mask. I've set the mood with warm candlelight.",
-        uiDirective: {
-          action: 'SHOW_PRODUCTS' as UIAction,
-          payload: {
-            products,
-            sceneContext: {
-              setting: 'bathroom' as const,
-              generateBackground: true,
-              editMode: true,
-              cmsTag: 'scene-bathroom-evening',
-              backgroundPrompt: 'Add warm golden candlelight glow, evening atmosphere, dimmed soft lighting',
+      if (customerCtx?.recentActivity?.length) {
+        const activity = customerCtx.recentActivity.slice(0, 3);
+        return {
+          message: `Here's your recent order activity:\n\n${activity.map((a) => `- ${a}`).join('\n')}\n\nWould you like tracking details on a specific order?`,
+          uiDirective: {
+            action: 'SHOW_ORDER_STATUS' as UIAction,
+            payload: {
+              orderStatus: {
+                orderId: 'ORD-2024-4821',
+                status: 'In Transit',
+                trackingNumber: 'FX-7829104562',
+                estimatedDelivery: '2024-02-08',
+                lineItems: [
+                  { productName: 'Vestas V162 Turbine Blade', quantity: 3 },
+                  { productName: 'SMA Sunny Tripower CORE2', quantity: 10 },
+                ],
+              },
             },
           },
-        },
-        suggestedActions: ['Get the night routine', 'Tell me about retinol', 'What about an eye cream?'],
-      };
-    },
-  },
-  {
-    pattern: /mask|hydrating mask|sleeping mask|overnight/i,
-    response: () => {
-      const product = findProduct('mask-hydrating')!;
-      state.currentProductId = product.id;
+          suggestedActions: ['Track order FX-7829104562', 'View all open orders', 'Reorder equipment'],
+        };
+      }
       return {
-        message: `Our ${product.name} is perfect for an overnight moisture boost. Apply as the last step of your evening routine — wake up to plump, dewy skin.`,
-        uiDirective: {
-          action: 'SHOW_PRODUCT' as UIAction,
-          payload: {
-            products: [product],
-            sceneContext: { setting: 'bedroom' as const, generateBackground: false },
-          },
-        },
-        suggestedActions: ['Add to bag', 'Show me a night routine', 'What else for dry skin?'],
+        message: 'I can look up your order status. Could you provide your PO number or order ID?',
+        suggestedActions: ['View all open orders', 'Browse equipment', 'Request a quote'],
       };
     },
   },
+
+  // Reorder / restock
   {
-    pattern: /toner|exfoli|pore|texture/i,
-    response: () => {
-      const product = findProduct('toner-aha')!;
-      state.currentProductId = product.id;
-      return {
-        message: `Our ${product.name} is a gentle 5% glycolic acid toner that smooths texture, minimizes pores, and preps skin for your serum.`,
-        uiDirective: {
-          action: 'SHOW_PRODUCT' as UIAction,
-          payload: {
-            products: [product],
-            sceneContext: { setting: 'bathroom' as const, generateBackground: false },
-          },
-        },
-        suggestedActions: ['Add to bag', 'Show me a full routine', 'What serum pairs well?'],
-      };
-    },
-  },
-  {
-    pattern: /makeup|foundation|base|coverage|concealer/i,
-    response: () => {
-      const products = [findProduct('foundation-dewy')!, findProduct('blush-silk')!, findProduct('mascara-volume')!];
-      state.lastShownProductIds = products.map((p) => p.id);
-      return {
-        message: "Let me set up our makeup station! Here are our bestsellers: the Skin Glow Serum Foundation for luminous coverage, Silk Petal Blush for a natural flush, and Lash Drama Mascara for buildable volume.",
-        uiDirective: {
-          action: 'SHOW_PRODUCTS' as UIAction,
-          payload: {
-            products,
-            sceneContext: { setting: 'vanity' as const, generateBackground: false },
-          },
-        },
-        suggestedActions: ['Tell me about the foundation', 'Show me lipsticks', 'I want a full look'],
-      };
-    },
-  },
-  {
-    pattern: /lipstick|lip color|lip/i,
-    response: () => {
-      const product = findProduct('lipstick-velvet')!;
-      state.currentProductId = product.id;
-      return {
-        message: `Our ${product.name} is a hydrating matte formula that feels weightless and never dries out.`,
-        uiDirective: {
-          action: 'SHOW_PRODUCT' as UIAction,
-          payload: {
-            products: [product],
-            sceneContext: { setting: 'vanity' as const, generateBackground: false },
-          },
-        },
-        suggestedActions: ['Add to bag', 'Show me more makeup', 'What about blush?'],
-      };
-    },
-  },
-  {
-    pattern: /blush|cheek/i,
-    response: () => {
-      const product = findProduct('blush-silk')!;
-      state.currentProductId = product.id;
-      return {
-        message: `The ${product.name} melts into skin for a natural, lit-from-within flush.`,
-        uiDirective: {
-          action: 'SHOW_PRODUCT' as UIAction,
-          payload: {
-            products: [product],
-            sceneContext: { setting: 'vanity' as const, generateBackground: false },
-          },
-        },
-        suggestedActions: ['Add to bag', 'Show me foundation', 'Build me a full makeup look'],
-      };
-    },
-  },
-  {
-    pattern: /mascara|lash|eyelash/i,
-    response: () => {
-      const product = findProduct('mascara-volume')!;
-      state.currentProductId = product.id;
-      return {
-        message: `The ${product.name} has an hourglass-shaped brush that coats every lash root to tip. No clumping!`,
-        uiDirective: {
-          action: 'SHOW_PRODUCT' as UIAction,
-          payload: {
-            products: [product],
-            sceneContext: { setting: 'vanity' as const, generateBackground: false },
-          },
-        },
-        suggestedActions: ['Add to bag', 'Show me a full makeup look', 'What about lipstick?'],
-      };
-    },
-  },
-  {
-    pattern: /fragrance|perfume|cologne|scent|smell|eau de/i,
-    response: () => {
-      const products = [findProduct('fragrance-floral')!, findProduct('fragrance-woody')!];
-      state.lastShownProductIds = products.map((p) => p.id);
-      return {
-        message: "Step into our fragrance collection. Jardin de Nuit is a sophisticated floral — perfect for evening. Bois Sauvage is a fresh woody scent — great for everyday.",
-        uiDirective: {
-          action: 'SHOW_PRODUCTS' as UIAction,
-          payload: {
-            products,
-            sceneContext: { setting: 'bedroom' as const, generateBackground: false },
-          },
-        },
-        suggestedActions: ['Tell me about Jardin de Nuit', 'I prefer woody scents', 'Show me skincare instead'],
-      };
-    },
-  },
-  {
-    pattern: /hair|shampoo|conditioner|damaged hair|color.?treated/i,
-    response: () => {
-      const products = [findProduct('shampoo-repair')!, findProduct('conditioner-hydrating')!];
-      state.lastShownProductIds = products.map((p) => p.id);
-      return {
-        message: "For your hair, I'd recommend our Bond Repair duo: the shampoo strengthens damaged bonds, and the Silk Hydration Conditioner adds shine and detangles.",
-        uiDirective: {
-          action: 'SHOW_PRODUCTS' as UIAction,
-          payload: {
-            products,
-            sceneContext: { setting: 'bathroom' as const, generateBackground: false },
-          },
-        },
-        suggestedActions: ['Get both', 'Just the shampoo', 'Show me skincare instead'],
-      };
-    },
-  },
-  {
-    pattern: /restock|running low|refill|favorite|my product/i,
+    pattern: /reorder|restock|buy again|repeat order|last purchase/i,
     response: () => {
       if (customerCtx?.recentPurchases?.length) {
-        // Deduplicate product IDs
         const uniqueIds = [...new Set(customerCtx.recentPurchases)];
         const products = uniqueIds
           .map((id) => findProduct(id))
@@ -655,100 +343,371 @@ const RESPONSE_PATTERNS: {
         if (products.length) {
           state.lastShownProductIds = products.map((p) => p.id);
           return {
-            message: `Here are your recent purchases, ${customerCtx.name}. Shall I add any to your bag for a quick restock?`,
+            message: `Based on your recent orders, here are your most-purchased items. Shall I prepare a reorder at current pricing?\n\n${products.map((p) => `- **${p.name}** — ${formatPrice(p.price)} (${p.attributes.minOrderQty} min)`).join('\n')}`,
             uiDirective: {
               action: 'SHOW_PRODUCTS' as UIAction,
               payload: {
                 products,
-                sceneContext: { setting: 'bathroom' as const, generateBackground: false },
+                sceneContext: { setting: 'warehouse', generateBackground: false },
               },
             },
-            suggestedActions: ['Reorder all', 'Just the SPF', 'Show me something new instead'],
+            suggestedActions: ['Reorder all at current pricing', 'Adjust quantities', 'Request updated quote'],
           };
         }
       }
       return {
-        message: "I'd love to help you restock! What products are you running low on?",
-        suggestedActions: ['Moisturizer', 'Cleanser', 'SPF', 'Show me everything'],
+        message: "I'd be happy to help you reorder. What equipment do you need to restock?",
+        suggestedActions: ['Browse solar panels', 'Show wind turbine components', 'Check my order history'],
       };
     },
   },
+
+  // Wind turbine components
   {
-    pattern: /recommend|what should|suggest|what do you|for me|bestseller|new|what.?s new/i,
+    pattern: /turbine|blade|nacelle|tower|wind/i,
     response: () => {
-      const picks = [
-        findProduct('moisturizer-sensitive')!,
-        findProduct('serum-vitamin-c')!,
-        findProduct('foundation-dewy')!,
-        findProduct('fragrance-floral')!,
-      ];
-      state.lastShownProductIds = picks.map((p) => p.id);
-      return {
-        message: "Here are my top picks across categories: Hydra-Calm Moisturizer, our bestselling Vitamin C Serum, the luminous Skin Glow Foundation, and our signature Jardin de Nuit fragrance.",
-        uiDirective: {
-          action: 'SHOW_PRODUCTS' as UIAction,
-          payload: {
-            products: picks,
-            sceneContext: { setting: 'lifestyle' as const, generateBackground: false },
-          },
-        },
-        suggestedActions: ['Show me skincare', 'Show me makeup', 'Show me fragrances'],
-      };
-    },
-  },
-  {
-    pattern: /buy|purchase|add to (bag|cart)|get (it|this|both|all|the|them)/i,
-    response: () => ({
-      message: "Perfect choice! I'll set that up for you.",
-      uiDirective: {
-        action: 'INITIATE_CHECKOUT' as UIAction,
-        payload: {
-          checkoutData: { products: [], useStoredPayment: true },
-        },
-      },
-      suggestedActions: [],
-    }),
-  },
-  {
-    pattern: /travel|trip|going to|vacation|india|hot (weather|climate)/i,
-    response: () => {
-      const products = MOCK_PRODUCTS.filter((p) => p.attributes.isTravel);
+      const products = MOCK_PRODUCTS.filter((p) => p.category === 'wind-turbine');
       state.lastShownProductIds = products.map((p) => p.id);
       return {
-        message: "Here are our travel essentials — all compact and carry-on friendly.",
+        message: `Here are our wind turbine components:\n\n${products.map((p) => `- **${p.name}** (${p.brand}) — ${formatPrice(p.price)}: ${p.shortDescription}`).join('\n')}\n\nAll components are DNV-certified and available for utility-scale projects. Need a specific turbine platform or MW class?`,
         uiDirective: {
           action: 'SHOW_PRODUCTS' as UIAction,
           payload: {
             products,
-            sceneContext: { setting: 'travel' as const, generateBackground: false },
+            sceneContext: { setting: 'warehouse', generateBackground: false },
           },
         },
-        suggestedActions: ['Get the travel kit', 'Just the sunscreen', 'What about a cleanser?'],
+        suggestedActions: ['Request a quote', 'Check lead times', 'Show me solar panels'],
       };
     },
   },
+
+  // Solar panels
   {
-    pattern: /ingredient|what.?s in|contain|formul/i,
+    pattern: /solar|panel|photovoltaic|pv\b|module/i,
+    response: () => {
+      const products = MOCK_PRODUCTS.filter((p) => p.category === 'solar-panel');
+      state.lastShownProductIds = products.map((p) => p.id);
+      return {
+        message: `Here are our solar panel options:\n\n${products.map((p) => `- **${p.name}** (${p.brand}) — ${formatPrice(p.price)}: ${p.shortDescription}`).join('\n')}\n\nAll panels are IEC 61215 and UL 1703 certified. Available in pallet or container quantities.`,
+        uiDirective: {
+          action: 'SHOW_PRODUCTS' as UIAction,
+          payload: {
+            products,
+            sceneContext: { setting: 'warehouse', generateBackground: false },
+          },
+        },
+        suggestedActions: ['Request a quote', 'Show me inverters', 'Check lead times'],
+      };
+    },
+  },
+
+  // Inverters
+  {
+    pattern: /inverter|micro.?inverter|string.?inverter/i,
+    response: () => {
+      const products = MOCK_PRODUCTS.filter((p) =>
+        p.id === 'solar-inverter-sma' || p.id === 'solar-micro-enphase'
+      );
+      state.lastShownProductIds = products.map((p) => p.id);
+      return {
+        message: `Here are our inverter solutions:\n\n${products.map((p) => `- **${p.name}** (${p.brand}) — ${formatPrice(p.price)}: ${p.shortDescription}`).join('\n')}\n\nWe carry both string inverters for utility-scale and microinverters for commercial rooftop applications.`,
+        uiDirective: {
+          action: 'SHOW_PRODUCTS' as UIAction,
+          payload: {
+            products,
+            sceneContext: { setting: 'warehouse', generateBackground: false },
+          },
+        },
+        suggestedActions: ['Request a quote', 'Show me solar panels', 'Compare string vs micro inverters'],
+      };
+    },
+  },
+
+  // Mounting systems
+  {
+    pattern: /mount|rack|rail|track(er|ing)/i,
+    response: () => {
+      const products = MOCK_PRODUCTS.filter((p) =>
+        p.id === 'mount-rail-unirac' || p.id === 'mount-tracker-nextracker'
+      );
+      state.lastShownProductIds = products.map((p) => p.id);
+      return {
+        message: `Here are our mounting and racking solutions:\n\n${products.map((p) => `- **${p.name}** (${p.brand}) — ${formatPrice(p.price)}: ${p.shortDescription}`).join('\n')}\n\nFixed-tilt and single-axis tracker options available for ground-mount and rooftop installations.`,
+        uiDirective: {
+          action: 'SHOW_PRODUCTS' as UIAction,
+          payload: {
+            products,
+            sceneContext: { setting: 'warehouse', generateBackground: false },
+          },
+        },
+        suggestedActions: ['Request a quote', 'Compare fixed vs tracker', 'Show me solar panels'],
+      };
+    },
+  },
+
+  // Energy storage
+  {
+    pattern: /batter|storage|ess\b|megapack|bess/i,
+    response: () => {
+      const products = MOCK_PRODUCTS.filter((p) =>
+        p.id === 'bess-tesla-megapack' || p.id === 'bess-byd-cube'
+      );
+      state.lastShownProductIds = products.map((p) => p.id);
+      return {
+        message: `Here are our energy storage systems:\n\n${products.map((p) => `- **${p.name}** (${p.brand}) — ${formatPrice(p.price)}: ${p.shortDescription}`).join('\n')}\n\nBoth systems support grid-scale deployments with integrated battery management and thermal controls.`,
+        uiDirective: {
+          action: 'SHOW_PRODUCTS' as UIAction,
+          payload: {
+            products,
+            sceneContext: { setting: 'warehouse', generateBackground: false },
+          },
+        },
+        suggestedActions: ['Request a quote', 'Compare storage options', 'Check lead times'],
+      };
+    },
+  },
+
+  // Balance-of-system
+  {
+    pattern: /transformer|combiner|junction|bos\b|balance/i,
+    response: () => {
+      const products = MOCK_PRODUCTS.filter((p) =>
+        p.id === 'bos-transformer-abb' || p.id === 'bos-combiner-shoals' || p.id === 'bos-monitoring-also'
+      );
+      state.lastShownProductIds = products.map((p) => p.id);
+      return {
+        message: `Here are our balance-of-system components:\n\n${products.map((p) => `- **${p.name}** (${p.brand}) — ${formatPrice(p.price)}: ${p.shortDescription}`).join('\n')}\n\nThese components complete your installation from combiner boxes to step-up transformers and monitoring.`,
+        uiDirective: {
+          action: 'SHOW_PRODUCTS' as UIAction,
+          payload: {
+            products,
+            sceneContext: { setting: 'warehouse', generateBackground: false },
+          },
+        },
+        suggestedActions: ['Request a quote', 'Show me inverters', 'Check lead times'],
+      };
+    },
+  },
+
+  // Monitoring / SCADA
+  {
+    pattern: /monitor|scada|performance|powertrack/i,
+    response: () => {
+      const product = findProduct('bos-monitoring-also');
+      if (product) {
+        state.currentProductId = product.id;
+        return {
+          message: `For site monitoring, we carry **${product.name}** (${product.brand}) at ${formatPrice(product.price)}.\n\n${product.shortDescription}\n\nIntegrates with all major inverter brands and supports SCADA protocols for utility-scale fleet management.`,
+          uiDirective: {
+            action: 'SHOW_PRODUCT' as UIAction,
+            payload: {
+              products: [product],
+              sceneContext: { setting: 'neutral', generateBackground: false },
+            },
+          },
+          suggestedActions: ['Request a quote', 'Show me inverters', 'Browse all equipment'],
+        };
+      }
+      return {
+        message: 'We carry monitoring and SCADA solutions for solar, wind, and storage sites. What size installation are you monitoring?',
+        suggestedActions: ['Browse equipment', 'Request a quote'],
+      };
+    },
+  },
+
+  // General product / equipment browsing
+  {
+    pattern: /product|equipment|component|catalog|browse/i,
+    response: () => {
+      const popular = [
+        findProduct('solar-panel-jinko'),
+        findProduct('wt-blade-vestas'),
+        findProduct('bess-tesla-megapack'),
+        findProduct('solar-inverter-sma'),
+        findProduct('mount-tracker-nextracker'),
+      ].filter(Boolean) as NonNullable<ReturnType<typeof findProduct>>[];
+      state.lastShownProductIds = popular.map((p) => p.id);
+      return {
+        message: `Here are some of our most popular products across categories:\n\n${popular.map((p) => `- **${p.name}** (${p.brand}) — ${formatPrice(p.price)}: ${p.shortDescription}`).join('\n')}\n\nWe also carry inverters, mounting systems, balance-of-system components, and monitoring solutions.`,
+        uiDirective: {
+          action: 'SHOW_PRODUCTS' as UIAction,
+          payload: {
+            products: popular,
+            sceneContext: { setting: 'warehouse', generateBackground: false },
+          },
+        },
+        suggestedActions: ['Show wind turbine components', 'Browse solar panels', 'Explore energy storage', 'Request a quote'],
+      };
+    },
+  },
+
+  // Pricing / quoting
+  {
+    pattern: /price|quote|cost|pricing|how much|rate/i,
     response: () => {
       if (state.currentProductId) {
         const product = findProduct(state.currentProductId);
-        if (product && product.attributes?.ingredients) {
+        if (product) {
           return {
-            message: `The ${product.name} contains: ${product.attributes.ingredients.join(', ')}.`,
-            suggestedActions: ['Add to bag', 'Show me something else', 'Any alternatives?'],
+            message: `**${product.name}** is currently priced at ${formatPrice(product.price)} with a minimum order of ${product.attributes.minOrderQty}.\n\nFor volume pricing or contract rates, I can connect you with your account manager or generate a formal quote.`,
+            uiDirective: {
+              action: 'SHOW_PRODUCT' as UIAction,
+              payload: {
+                products: [product],
+                sceneContext: { setting: 'office', generateBackground: false },
+              },
+            },
+            suggestedActions: ['Request a formal quote', 'Check volume discounts', 'Show me alternatives'],
+          };
+        }
+      }
+      const popular = [
+        findProduct('solar-panel-jinko'),
+        findProduct('wt-blade-vestas'),
+        findProduct('bess-tesla-megapack'),
+      ].filter(Boolean) as NonNullable<ReturnType<typeof findProduct>>[];
+      return {
+        message: `Here are current list prices on some of our most popular equipment:\n\n${popular.map((p) => `- **${p.name}** — ${formatPrice(p.price)} (min ${p.attributes.minOrderQty})`).join('\n')}\n\nThese are list prices. Contract and volume pricing is available — I can generate a formal quote.`,
+        uiDirective: {
+          action: 'SHOW_PRODUCTS' as UIAction,
+          payload: {
+            products: popular,
+            sceneContext: { setting: 'office', generateBackground: false },
+          },
+        },
+        suggestedActions: ['Request a formal quote', 'Show all products with pricing', 'Check volume discounts'],
+      };
+    },
+  },
+
+  // Account / tier
+  {
+    pattern: /account|tier|points|loyalty|membership|standing/i,
+    response: () => {
+      const tier = customerCtx?.loyaltyTier ?? 'Standard';
+      const points = customerCtx?.loyaltyPoints ?? 0;
+      const company = customerCtx?.company ?? 'your company';
+      return {
+        message: `Here's your Formerra Plus account summary:\n\n- **Company:** ${company}\n- **Account Tier:** ${tier.charAt(0).toUpperCase() + tier.slice(1)}\n- **Loyalty Points:** ${points.toLocaleString()}\n\nYour tier determines priority fulfillment speed, volume pricing eligibility, and dedicated support access.`,
+        uiDirective: {
+          action: 'SHOW_ACCOUNT_SUMMARY' as UIAction,
+          payload: {
+            accountSummary: {
+              totalOrders: 47,
+              openOrders: 3,
+              ytdSpend: 284500,
+              accountTier: tier.charAt(0).toUpperCase() + tier.slice(1),
+            },
+          },
+        },
+        suggestedActions: ['How do I upgrade my tier?', 'View my order history', 'Track my orders'],
+      };
+    },
+  },
+
+  // Sustainability / clean energy
+  {
+    pattern: /sustainab|carbon|green|clean/i,
+    response: () => {
+      const popular = [
+        findProduct('solar-panel-longi'),
+        findProduct('bess-byd-cube'),
+        findProduct('wt-blade-vestas'),
+      ].filter(Boolean) as NonNullable<ReturnType<typeof findProduct>>[];
+      state.lastShownProductIds = popular.map((p) => p.id);
+      return {
+        message: `Every product we carry contributes to the clean energy transition. Our full catalog spans wind, solar, and energy storage — all designed to reduce carbon emissions and accelerate decarbonization.\n\n${popular.map((p) => `- **${p.name}** (${p.brand}) — ${formatPrice(p.price)}: ${p.shortDescription}`).join('\n')}\n\nNeed help calculating the carbon offset for your project?`,
+        uiDirective: {
+          action: 'SHOW_PRODUCTS' as UIAction,
+          payload: {
+            products: popular,
+            sceneContext: { setting: 'neutral', generateBackground: false },
+          },
+        },
+        suggestedActions: ['Browse solar panels', 'Show wind turbine components', 'Explore energy storage', 'Request a quote'],
+      };
+    },
+  },
+
+  // Lead times / availability
+  {
+    pattern: /lead time|availability|in stock|when can|how (soon|fast|long)/i,
+    response: () => {
+      if (state.currentProductId) {
+        const product = findProduct(state.currentProductId);
+        if (product) {
+          return {
+            message: `**${product.name}** is ${product.inStock ? 'in stock' : 'currently backordered'}. Standard lead time is ${product.attributes.leadTimeDays} business days from order confirmation.\n\nFor expedited shipping, Gold and Platinum accounts receive priority fulfillment.`,
+            suggestedActions: ['Place an order', 'Request expedited shipping', 'Show me alternatives'],
           };
         }
       }
       return {
-        message: "I'd be happy to tell you about ingredients! Which product are you curious about?",
-        suggestedActions: ['Moisturizer ingredients', 'Serum ingredients', 'Cleanser ingredients'],
+        message: 'Solar panels and inverters typically ship within 2-4 weeks. Wind turbine components are 8-16 weeks depending on configuration. Energy storage systems are 12-20 weeks for utility-scale. Which equipment are you interested in?',
+        suggestedActions: ['Check a specific product', 'Browse solar panels', 'Show me what ships fastest'],
       };
     },
   },
+
+  // Certifications / technical standards
+  {
+    pattern: /certif|iec|ul\b|dnv|ieee|nec/i,
+    response: () => {
+      if (state.currentProductId) {
+        const product = findProduct(state.currentProductId);
+        if (product?.attributes.certifications?.length) {
+          return {
+            message: `**${product.name}** carries the following certifications: ${product.attributes.certifications.join(', ')}.\n\nI can send you the full technical data sheet or connect you with our applications engineering team for detailed specifications.`,
+            suggestedActions: ['Send me the TDS', 'Connect me with engineering', 'Request a sample'],
+          };
+        }
+      }
+      return {
+        message: 'All our equipment meets industry certification standards including IEC, UL, DNV, IEEE, and NEC requirements. Which product do you need certification details for?',
+        suggestedActions: ['Show me solar panel certifications', 'Wind turbine DNV specs', 'Inverter UL listing'],
+      };
+    },
+  },
+
+  // Warranty / maintenance / service
+  {
+    pattern: /warranty|maintenance|service|support/i,
+    response: () => {
+      if (state.currentProductId) {
+        const product = findProduct(state.currentProductId);
+        if (product) {
+          return {
+            message: `**${product.name}** comes with the manufacturer's standard warranty. Extended warranty and O&M service contracts are available through our service partners.\n\nI can connect you with our technical support team for warranty claims or maintenance scheduling.`,
+            suggestedActions: ['Request warranty details', 'Schedule maintenance', 'Connect me with support'],
+          };
+        }
+      }
+      return {
+        message: 'We offer comprehensive warranty support and can arrange O&M service contracts for all equipment we sell. Solar panels typically carry 25-year performance warranties, inverters 10-15 years, and wind components 5-10 years. What equipment do you need warranty info for?',
+        suggestedActions: ['Solar panel warranties', 'Inverter service plans', 'Wind turbine maintenance'],
+      };
+    },
+  },
+
+  // Greetings
+  {
+    pattern: /^(hi|hello|hey|good (morning|afternoon|evening))/i,
+    response: () => {
+      const welcome = generateWelcomeResponse();
+      if (welcome) return welcome;
+      return {
+        message: 'Hello! Welcome to Formerra Plus. I can help you source wind turbine components, solar equipment, and energy storage solutions. What are you looking for?',
+        suggestedActions: DISCOVERY_ACTIONS,
+      };
+    },
+  },
+
+  // Thanks / goodbye
   {
     pattern: /thank|thanks|bye|goodbye/i,
     response: () => ({
-      message: "You're welcome! It was lovely helping you today. Enjoy your new products!",
+      message: 'You\'re welcome. Don\'t hesitate to reach out when you need renewable energy equipment support. Have a productive day.',
       uiDirective: {
         action: 'RESET_SCENE' as UIAction,
         payload: {},
@@ -756,21 +715,25 @@ const RESPONSE_PATTERNS: {
       suggestedActions: [],
     }),
   },
+
+  // Help / what can you do
   {
-    pattern: /hi|hello|hey|good (morning|afternoon|evening)/i,
-    response: () => {
-      const welcome = generateWelcomeResponse();
-      if (welcome) return welcome;
-      return {
-        message: "Hello! Welcome to your personal beauty advisor. What are you looking for today?",
-        suggestedActions: ['Show me moisturizers', 'Show me makeup', 'Show me fragrances', 'Build me a routine'],
-      };
-    },
+    pattern: /help|what can you|what do you/i,
+    response: () => ({
+      message: 'I can help you with:\n\n- **Equipment sourcing** — wind turbine components, solar panels, inverters, energy storage, balance-of-system\n- **Order management** — track shipments, reorder equipment, check lead times\n- **Pricing & quotes** — current pricing, volume discounts, formal quotes\n- **Technical support** — certifications, data sheets, warranty information\n- **Account management** — tier status, order history, saved preferences\n\nWhat would you like to start with?',
+      suggestedActions: ['Browse equipment', 'Track my orders', 'Request a quote', 'Check my account'],
+    }),
   },
 ];
 
-export const generateMockResponse = async (message: string): Promise<AgentResponse> => {
-  await new Promise((resolve) => setTimeout(resolve, 800 + Math.random() * 400));
+// ─── Main entry point ────────────────────────────────────────────
+
+export const generateMockResponse = async (
+  message: string,
+  customer?: CustomerProfile | null,
+  products?: Product[],
+): Promise<AgentResponse> => {
+  await new Promise((resolve) => setTimeout(resolve, 600 + Math.random() * 400));
 
   // Auto-welcome trigger from ConversationContext on persona change
   if (message === '[WELCOME]') {
@@ -781,12 +744,7 @@ export const generateMockResponse = async (message: string): Promise<AgentRespon
   for (const { pattern, response } of RESPONSE_PATTERNS) {
     if (message.match(pattern)) {
       const result = response();
-      // Occasionally slip in an enrichment probe as the last suggested action
       const actions = [...(result.suggestedActions || [])];
-      const probe = getEnrichmentProbe();
-      if (probe && actions.length >= 2 && Math.random() < 0.4) {
-        actions[actions.length - 1] = probe;
-      }
       return {
         sessionId: 'mock-session',
         message: result.message!,
@@ -799,8 +757,8 @@ export const generateMockResponse = async (message: string): Promise<AgentRespon
 
   return {
     sessionId: 'mock-session',
-    message: "I'd be happy to help! I can recommend skincare, makeup, fragrances, or hair care. What interests you?",
-    suggestedActions: ['Show me skincare', 'Show me makeup', 'Show me fragrances', 'Build me a routine'],
-    confidence: 0.8,
+    message: "I can help you source the right renewable energy equipment. We carry wind turbine components, solar panels, inverters, energy storage, and balance-of-system equipment. What project are you working on?",
+    suggestedActions: DISCOVERY_ACTIONS,
+    confidence: 0.80,
   };
 };

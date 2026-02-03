@@ -12,8 +12,8 @@ function buildSubtitle(profile: CustomerProfile): string {
   if (tier === 'anonymous') return 'Merkury: No Match';
   if (tier === 'appended') return 'Merkury: Matched · Appended Only';
   const loyalty = profile.loyalty?.tier;
-  if (loyalty) return `Merkury: Matched · Loyalty ${loyalty.charAt(0).toUpperCase() + loyalty.slice(1)}`;
-  return 'Merkury: Matched · No Loyalty';
+  if (loyalty) return `Merkury: Matched · ${loyalty.charAt(0).toUpperCase() + loyalty.slice(1)} Account`;
+  return 'Merkury: Matched · No Tier';
 }
 
 function buildTraits(profile: CustomerProfile): string[] {
@@ -31,9 +31,8 @@ function buildTraits(profile: CustomerProfile): string[] {
     return traits.slice(0, 5);
   }
 
-  if (profile.beautyProfile?.skinType && profile.beautyProfile.skinType !== 'normal') {
-    traits.push(`${profile.beautyProfile.skinType.charAt(0).toUpperCase() + profile.beautyProfile.skinType.slice(1)} skin`);
-  }
+  if (profile.company) traits.push(profile.company);
+  if (profile.beautyProfile?.industry) traits.push(profile.beautyProfile.industry);
   const orderCount = profile.orders?.length || 0;
   if (orderCount > 0) traits.push(`${orderCount} order${orderCount !== 1 ? 's' : ''}`);
   if (profile.loyalty) {
@@ -41,10 +40,7 @@ function buildTraits(profile: CustomerProfile): string[] {
     const tierLabel = profile.loyalty.tier.charAt(0).toUpperCase() + profile.loyalty.tier.slice(1);
     traits.push(pts ? `${tierLabel} · ${pts.toLocaleString()} pts` : tierLabel);
   } else if (tier === 'known') {
-    traits.push('Not a loyalty member');
-  }
-  if (profile.beautyProfile?.concerns?.length) {
-    traits.push(profile.beautyProfile.concerns[0].charAt(0).toUpperCase() + profile.beautyProfile.concerns[0].slice(1));
+    traits.push('No account tier');
   }
   return traits.slice(0, 5);
 }
@@ -86,13 +82,16 @@ function renderProfileSections(customer: CustomerProfile) {
   const sections: React.ReactNode[] = [];
   const bp = customer.beautyProfile;
 
-  if (bp?.skinType) {
+  if (bp?.industry) {
     sections.push(
-      <Section key="beauty" title="Beauty Profile" source="Contact" defaultOpen>
-        <Field label="Skin Type" value={bp.skinType} />
-        <Field label="Concerns" value={bp.concerns?.join(', ')} />
-        <Field label="Allergies" value={bp.allergies?.join(', ')} />
+      <Section key="account" title="Account Profile" source="Account" defaultOpen>
+        <Field label="Industry" value={bp.industry} />
+        <Field label="Applications" value={bp.primaryApplications?.join(', ')} />
+        <Field label="Certifications" value={bp.certifications?.join(', ')} />
+        <Field label="Processing" value={bp.preferredProcessingMethods?.join(', ')} />
+        <Field label="Preferred Resins" value={bp.preferredResins?.join(', ')} />
         <Field label="Preferred Brands" value={bp.preferredBrands?.join(', ')} />
+        <Field label="Volume Tier" value={bp.volumeTier} />
       </Section>
     );
   }
@@ -104,10 +103,20 @@ function renderProfileSections(customer: CustomerProfile) {
           <div key={i} className="py-1 border-b border-white/5 last:border-b-0">
             <div className="flex justify-between">
               <span className="text-[11px] text-white/70">{o.orderId}</span>
-              <span className="text-[11px] text-white/50">{o.orderDate}</span>
+              <span className={`text-[10px] px-1 rounded ${
+                o.status === 'completed' ? 'bg-green-500/20 text-green-400' :
+                o.status === 'processing' ? 'bg-yellow-500/20 text-yellow-400' :
+                o.status === 'shipped' || o.status === 'in-transit' ? 'bg-blue-500/20 text-blue-400' :
+                'bg-white/10 text-white/50'
+              }`}>{o.status}</span>
             </div>
+            <div className="flex justify-between mt-0.5">
+              <span className="text-[10px] text-white/50">{o.orderDate}</span>
+              <span className="text-[10px] text-white/50">${o.totalAmount.toLocaleString()}</span>
+            </div>
+            {o.poNumber && <div className="text-[10px] text-white/40">PO: {o.poNumber}</div>}
             <div className="text-[10px] text-white/40">
-              {o.lineItems.map(li => li.productName).join(', ')} — ${o.totalAmount}
+              {o.lineItems.map(li => `${li.productName} (${li.quantity.toLocaleString()} ${li.unit || 'units'})`).join(', ')}
             </div>
           </div>
         ))}
@@ -193,7 +202,7 @@ function renderProfileSections(customer: CustomerProfile) {
   if (customer.loyalty) {
     const l = customer.loyalty;
     sections.push(
-      <Section key="loyalty" title="Loyalty" source="LoyaltyProgramMember">
+      <Section key="loyalty" title="Account Tier" source="AccountTier">
         <Field label="Tier" value={l.tier} />
         <Field label="Points" value={`${l.pointsBalance.toLocaleString()} balance / ${l.lifetimePoints.toLocaleString()} lifetime`} />
         <Field label="Member Since" value={l.memberSince} />
@@ -201,17 +210,16 @@ function renderProfileSections(customer: CustomerProfile) {
     );
   }
 
-  // Appended profile (3P)
   if (customer.appendedProfile) {
     const ap = customer.appendedProfile;
     sections.push(
       <Section key="appended" title="Merkury Appended (3P)" source="Merkury">
-        <Field label="Age Range" value={ap.ageRange} />
-        <Field label="Gender" value={ap.gender} />
-        <Field label="Income" value={ap.householdIncome} />
+        <Field label="Company Size" value={ap.companySize} />
+        <Field label="Industry" value={ap.industryVertical} />
+        <Field label="Revenue" value={ap.annualRevenue} />
         <Field label="Region" value={ap.geoRegion} />
         <Field label="Interests" value={ap.interests?.join(', ')} />
-        <Field label="Lifestyle" value={ap.lifestyleSignals?.join(', ')} />
+        <Field label="Signals" value={ap.lifestyleSignals?.join(', ')} />
       </Section>
     );
   }
@@ -229,11 +237,10 @@ export const IdentityPanel: React.FC = () => {
 
   const handleSelect = (personaId: string) => {
     selectPersona(personaId);
-    // Don't close — let user see the profile data load
   };
 
   const getLabel = (stub: PersonaStub) => {
-    if (activeStub?.id === stub.id && customer) return customer.name || stub.defaultLabel;
+    if (activeStub?.id === stub.id && customer) return customer.name || customer.company || stub.defaultLabel;
     return stub.defaultLabel;
   };
 
@@ -252,12 +259,11 @@ export const IdentityPanel: React.FC = () => {
     : isLoading
       ? 'Loading...'
       : activeStub
-        ? (customer?.name || activeStub.defaultLabel)
+        ? (customer?.name || customer?.company || activeStub.defaultLabel)
         : 'Select Identity';
 
   return (
     <div className="fixed top-4 right-4 z-50">
-      {/* Trigger button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 rounded-lg bg-black/60 backdrop-blur-sm border border-white/10 px-3 py-1.5 text-xs text-white/70 hover:text-white/90 hover:bg-black/70 transition-all"
@@ -267,11 +273,9 @@ export const IdentityPanel: React.FC = () => {
         <span className="text-white/40">{isOpen ? '▲' : '▼'}</span>
       </button>
 
-      {/* Dropdown panel */}
       <AnimatePresence>
         {isOpen && (
           <>
-            {/* Invisible backdrop to close on outside click */}
             <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
 
             <motion.div
@@ -281,10 +285,8 @@ export const IdentityPanel: React.FC = () => {
               transition={{ duration: 0.15 }}
               className="absolute right-0 mt-2 w-80 max-h-[85vh] overflow-y-auto rounded-xl bg-gray-900/95 backdrop-blur-xl border border-white/10 shadow-2xl z-50"
             >
-              {/* ── Active persona + profile data (pinned at top) ── */}
               {activeStub && (
                 <div className="border-b border-white/10">
-                  {/* Active persona card */}
                   <div className="p-3">
                     <div className="flex items-center gap-2.5">
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0 ${
@@ -292,7 +294,7 @@ export const IdentityPanel: React.FC = () => {
                           ? 'bg-gradient-to-br from-gray-500 to-gray-600'
                           : activeStub.identityTier === 'appended'
                             ? 'bg-gradient-to-br from-amber-400 to-orange-400'
-                            : 'bg-gradient-to-br from-purple-400 to-pink-400'
+                            : 'bg-gradient-to-br from-[#59285D] to-[#7c3a80]'
                       }`}>
                         {activeStub.identityTier === 'anonymous' ? '?' : getLabel(activeStub).charAt(0)}
                       </div>
@@ -343,18 +345,20 @@ export const IdentityPanel: React.FC = () => {
                     )}
                   </div>
 
-                  {/* Profile data sections (only when customer is loaded) */}
                   {customer && (
                     <div>
                       <div className="px-3 py-2 border-t border-white/10">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-medium text-white">{customer.name}</span>
+                          <span className="text-xs font-medium text-white">{customer.name}{customer.company ? ` — ${customer.company}` : ''}</span>
                           <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400">
                             {customer.merkuryIdentity?.identityTier === 'appended' ? 'Merkury 3P' : 'Salesforce CRM'}
                           </span>
                         </div>
                         {customer.email && (
                           <div className="text-[10px] text-white/50 mt-0.5">{customer.email} — {customer.id}</div>
+                        )}
+                        {customer.jobTitle && (
+                          <div className="text-[10px] text-white/40">{customer.jobTitle}</div>
                         )}
                       </div>
                       {renderProfileSections(customer)}
@@ -363,7 +367,6 @@ export const IdentityPanel: React.FC = () => {
                 </div>
               )}
 
-              {/* ── Persona list (all others) ── */}
               <div className="p-3">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-semibold text-white/80">
@@ -390,7 +393,7 @@ export const IdentityPanel: React.FC = () => {
                               ? 'bg-gradient-to-br from-gray-500 to-gray-600'
                               : stub.identityTier === 'appended'
                                 ? 'bg-gradient-to-br from-amber-400 to-orange-400'
-                                : 'bg-gradient-to-br from-purple-400 to-pink-400'
+                                : 'bg-gradient-to-br from-[#59285D] to-[#7c3a80]'
                           }`}>
                             {stub.identityTier === 'anonymous' ? '?' : label.charAt(0)}
                           </div>
@@ -407,7 +410,6 @@ export const IdentityPanel: React.FC = () => {
                 </div>
               </div>
 
-              {/* Footer */}
               <div className="px-3 py-2 border-t border-white/10">
                 <p className="text-white/30 text-[9px] leading-relaxed">
                   In production, Merkury's Identity tag fires automatically on page load. This panel simulates identity resolution for demo purposes.

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 import type { CustomerProfile } from '@/types/customer';
 import { resolveMerkuryIdentity } from '@/services/merkury/mockTag';
-import { getPersonaById, PERSONAS } from '@/mocks/customerPersonas';
+import { getPersonaById, PERSONA_STUBS } from '@/mocks/customerPersonas';
 import { getDataCloudService } from '@/services/datacloud';
 
 const useMockData = import.meta.env.VITE_USE_MOCK_DATA !== 'false';
@@ -13,7 +13,7 @@ interface CustomerContextValue {
   isResolving: boolean;
   error: Error | null;
   selectPersona: (personaId: string) => Promise<void>;
-  identifyByEmail: (email: string) => Promise<boolean>;
+  identifyByEmail: (email: string) => Promise<void>;
   refreshProfile: () => Promise<void>;
   resetPersonaSession: (personaId: string) => void;
   /** @internal Used by ConversationContext to detect refresh vs switch. */
@@ -34,6 +34,7 @@ export const CustomerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const isRefreshRef = useRef(false);
   /** Callbacks registered by ConversationContext to clear a persona's cached session. */
   const sessionResetCallbacksRef = useRef<Set<(personaId: string) => void>>(new Set());
+  const hasAutoSelected = useRef(false);
 
   /** Register a callback to be notified when a persona session should be reset. */
   const onSessionReset = useCallback((cb: (personaId: string) => void) => {
@@ -52,8 +53,6 @@ export const CustomerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       console.log('[merkury] Identity resolved:', resolution.identityTier, 'confidence:', resolution.confidence);
 
       // Appended-tier: Merkury resolved identity via 3P data only.
-      // These people are NOT in Data Cloud — don't look them up there.
-      // Build a minimal anonymous-like profile with only appended signals attached.
       if (resolution.identityTier === 'appended') {
         const appendedProfile: CustomerProfile = {
           id: resolution.merkuryId || `appended-${personaId}`,
@@ -80,8 +79,6 @@ export const CustomerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         console.log('[customer] Appended-tier identity — using minimal profile with 3P signals only');
         setCustomer(appendedProfile);
       } else if (resolution.identityTier === 'anonymous' || !resolution.merkuryId) {
-        // Anonymous: Merkury found no match. Stay on the default starting page —
-        // no agent session, no welcome, no profile data. Just the baseline experience.
         console.log('[customer] Anonymous — no identity resolved, staying on default experience');
         setCustomer(null);
       } else if (useMockData) {
@@ -95,7 +92,6 @@ export const CustomerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       } else {
         // REAL MODE: Fetch known profile from Data Cloud
         setIsLoading(true);
-        // Stamp Merkury resolution onto the profile so the UI knows identity tier
         const merkuryIdentity = {
           merkuryId: resolution.merkuryId!,
           identityTier: resolution.identityTier,
@@ -131,91 +127,58 @@ export const CustomerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, []);
 
-  // Auto-select anonymous persona on mount so the app starts with a default experience
-  const initializedRef = useRef(false);
-  useEffect(() => {
-    if (!initializedRef.current) {
-      initializedRef.current = true;
-      selectPersona('anonymous');
-    }
-  }, [selectPersona]);
-
-  /** Identify an anonymous user by email — find existing profile or create a new one.
-   *  Uses isRefreshRef so the conversation is NOT reset. */
-  const identifyByEmail = useCallback(async (email: string): Promise<boolean> => {
-    setIsResolving(true);
-    setError(null);
+  /** Identify an anonymous visitor by email mid-conversation. */
+  const identifyByEmail = useCallback(async (email: string) => {
+    if (!email) return;
+    isRefreshRef.current = true;
 
     try {
-      let profile: CustomerProfile | null = null;
-
       if (useMockData) {
-        // Search mock personas by email
-        const match = PERSONAS.find(
-          (p) => p.profile.email.toLowerCase() === email.toLowerCase()
-        );
-        if (match) {
-          profile = match.profile;
-          console.log('[identity] Matched existing mock persona:', match.label);
-        } else {
-          // Create minimal new profile for unknown email
-          const firstName = email.split('@')[0].split('.')[0];
-          const name = firstName.charAt(0).toUpperCase() + firstName.slice(1);
-          profile = {
-            id: `customer-${Date.now()}`,
-            name,
-            email,
-            beautyProfile: { skinType: 'normal', concerns: [], allergies: [], preferredBrands: [] },
-            orders: [],
-            chatSummaries: [],
-            meaningfulEvents: [],
-            browseSessions: [],
-            loyalty: null,
-            purchaseHistory: [],
-            savedPaymentMethods: [],
-            shippingAddresses: [],
-            recentActivity: [],
-            merkuryIdentity: {
-              merkuryId: `MRK-${Date.now()}`,
-              identityTier: 'known',
-              confidence: 0.85,
-              resolvedAt: new Date().toISOString(),
-            },
-          };
-          console.log('[identity] Created new mock profile for:', email);
+        // Match against existing personas by email
+        for (const stub of PERSONA_STUBS) {
+          const persona = getPersonaById(stub.id);
+          if (persona && persona.profile.email.toLowerCase() === email.toLowerCase()) {
+            console.log('[identity] Email matched persona:', stub.id);
+            setSelectedPersonaId(stub.id);
+            setCustomer(persona.profile);
+            return;
+          }
         }
+        // No match — create minimal known profile
+        console.log('[identity] No persona match for email, creating minimal profile');
+        const minimalProfile: CustomerProfile = {
+          id: `email-${email}`,
+          name: email.split('@')[0],
+          email,
+          beautyProfile: {} as CustomerProfile['beautyProfile'],
+          orders: [],
+          purchaseHistory: [],
+          chatSummaries: [],
+          meaningfulEvents: [],
+          browseSessions: [],
+          loyalty: null,
+          savedPaymentMethods: [],
+          shippingAddresses: [],
+          merkuryIdentity: {
+            merkuryId: `email-${email}`,
+            identityTier: 'known',
+            confidence: 0.85,
+            resolvedAt: new Date().toISOString(),
+          },
+        };
+        setCustomer(minimalProfile);
       } else {
         // Real mode: query Data Cloud by email
-        try {
-          const dataCloudService = getDataCloudService();
-          profile = await dataCloudService.getCustomerProfileByEmail(email);
-          profile.merkuryIdentity = {
-            merkuryId: profile.id,
-            identityTier: 'known',
-            confidence: 0.9,
-            resolvedAt: new Date().toISOString(),
-          };
-          console.log('[identity] Found existing profile in Data Cloud for:', email);
-        } catch {
-          console.warn('[identity] Email not found in Data Cloud:', email);
-          // The Agentforce agent should have already called CreateSalesContactRecord,
-          // so try again after a short delay to allow SF to process
-          return false;
+        const dataCloudService = getDataCloudService();
+        const profile = await (dataCloudService as any).getCustomerProfileByEmail?.(email);
+        if (profile) {
+          setCustomer(profile);
         }
       }
-
-      // Mark as refresh so conversation is NOT reset
-      isRefreshRef.current = true;
-      setCustomer(profile);
-      // Reset refresh flag on next tick
-      setTimeout(() => { isRefreshRef.current = false; }, 0);
-      return true;
     } catch (err) {
       console.error('[identity] Email identification failed:', err);
-      setError(err instanceof Error ? err : new Error('Email identification failed'));
-      return false;
     } finally {
-      setIsResolving(false);
+      isRefreshRef.current = false;
     }
   }, []);
 
@@ -230,11 +193,18 @@ export const CustomerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   /** Clear a persona's cached session so their next switch re-fires welcome. */
   const resetPersonaSession = useCallback((personaId: string) => {
     for (const cb of sessionResetCallbacksRef.current) cb(personaId);
-    // If resetting the active persona, re-select to trigger fresh welcome
     if (personaId === selectedPersonaId) {
       selectPersona(personaId);
     }
   }, [selectedPersonaId, selectPersona]);
+
+  // Auto-select anonymous persona on startup
+  useEffect(() => {
+    if (!hasAutoSelected.current) {
+      hasAutoSelected.current = true;
+      selectPersona('anonymous');
+    }
+  }, [selectPersona]);
 
   return (
     <CustomerContext.Provider value={{

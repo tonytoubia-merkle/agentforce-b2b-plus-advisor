@@ -24,7 +24,7 @@ export const AdvisorPage: React.FC = () => {
         {isLoadingWelcome ? (
           <WelcomeLoader key="loader" />
         ) : scene.welcomeActive ? (
-          <WelcomeScreen key="welcome" />
+          <WelcomeScreen key="welcome" isActive={scene.welcomeActive} />
         ) : (
           <motion.div
             key="main-chat"

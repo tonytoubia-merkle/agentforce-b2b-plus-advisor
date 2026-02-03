@@ -1,26 +1,21 @@
-export type SceneLayout = 
+export type SceneLayout =
   | 'conversation-centered'
   | 'product-hero'
   | 'product-grid'
   | 'checkout';
 
-/** Well-known settings with pre-seeded images and fallback gradients. */
+/** Well-known settings with fallback gradients. B2B — professional/industrial. */
 export type KnownSceneSetting =
   | 'neutral'
-  | 'bathroom'
-  | 'travel'
-  | 'outdoor'
-  | 'lifestyle'
-  | 'bedroom'
-  | 'vanity'
-  | 'gym'
-  | 'office';
+  | 'warehouse'
+  | 'factory'
+  | 'lab'
+  | 'office'
+  | 'loading-dock'
+  | 'cleanroom'
+  | 'production-floor'
+  | 'conference';
 
-/**
- * Scene setting can be a well-known value OR a free-form string from the agent.
- * Free-form settings (e.g. "streets-of-new-york") won't match pre-seeded images
- * and will always trigger generation via backgroundPrompt.
- */
 export type SceneSetting = KnownSceneSetting | (string & {});
 
 export interface SceneBackground {

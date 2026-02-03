@@ -2,60 +2,53 @@ import { describe, it, expect } from 'vitest';
 import { generateMockResponse } from '@/services/mock/mockAgent';
 
 describe('generateMockResponse', () => {
-  it('returns moisturizer product for hydration query', async () => {
-    const response = await generateMockResponse('I need a moisturizer');
-    expect(response.message).toContain('Hydra-Calm');
-    expect(response.uiDirective?.action).toBe('SHOW_PRODUCT');
-    expect(response.uiDirective?.payload.products).toHaveLength(1);
-    expect(response.uiDirective?.payload.products![0].id).toBe('moisturizer-sensitive');
-  });
-
-  it('returns travel products for travel query', async () => {
-    const response = await generateMockResponse('I am going on a trip to India');
+  it('returns solar panel product for solar query', async () => {
+    const response = await generateMockResponse('I need solar panels');
     expect(response.uiDirective?.action).toBe('SHOW_PRODUCTS');
-    expect(response.uiDirective?.payload.products!.length).toBeGreaterThan(1);
-    expect(response.uiDirective?.payload.sceneContext?.setting).toBe('travel');
+    expect(response.uiDirective?.payload.products!.length).toBeGreaterThan(0);
+    expect(response.uiDirective?.payload.products![0].category).toBe('solar-panel');
   });
 
-  it('initiates checkout for purchase intent', async () => {
-    const response = await generateMockResponse('buy it');
-    expect(response.uiDirective?.action).toBe('INITIATE_CHECKOUT');
-  });
-
-  it('returns cleanser for cleanser query', async () => {
-    const response = await generateMockResponse('I need a face wash');
-    expect(response.uiDirective?.action).toBe('SHOW_PRODUCT');
-    expect(response.uiDirective?.payload.products![0].category).toBe('cleanser');
-  });
-
-  it('returns serums for serum query', async () => {
-    const response = await generateMockResponse('show me serums');
+  it('returns wind turbine products for turbine query', async () => {
+    const response = await generateMockResponse('show me wind turbine components');
     expect(response.uiDirective?.action).toBe('SHOW_PRODUCTS');
-    expect(response.uiDirective?.payload.products!.every((p) => p.category === 'serum')).toBe(true);
+    expect(response.uiDirective?.payload.products!.length).toBeGreaterThan(0);
   });
 
-  it('returns sunscreen for SPF query', async () => {
-    const response = await generateMockResponse('I need sunscreen');
-    expect(response.uiDirective?.action).toBe('SHOW_PRODUCT');
-    expect(response.uiDirective?.payload.products![0].id).toBe('sunscreen-lightweight');
+  it('returns order tracking response for order query', async () => {
+    const response = await generateMockResponse('where is my order');
+    expect(response.message).toBeDefined();
+    expect(response.suggestedActions!.length).toBeGreaterThan(0);
   });
 
-  it('returns acne products for breakout query', async () => {
-    const response = await generateMockResponse('I have acne');
-    expect(response.uiDirective?.action).toBe('SHOW_PRODUCT');
-    expect(response.uiDirective?.payload.products![0].id).toBe('cleanser-acne');
-  });
-
-  it('returns anti-aging products for wrinkle query', async () => {
-    const response = await generateMockResponse('help with wrinkles');
+  it('returns inverter products for inverter query', async () => {
+    const response = await generateMockResponse('show me inverters');
     expect(response.uiDirective?.action).toBe('SHOW_PRODUCTS');
-    expect(response.uiDirective?.payload.products!.length).toBe(2);
+    expect(response.uiDirective?.payload.products!.every((p) => p.category === 'inverter')).toBe(true);
   });
 
-  it('returns routine for routine query', async () => {
-    const response = await generateMockResponse('build me a skincare routine');
+  it('returns energy storage for battery query', async () => {
+    const response = await generateMockResponse('I need battery storage');
     expect(response.uiDirective?.action).toBe('SHOW_PRODUCTS');
-    expect(response.uiDirective?.payload.products!.length).toBe(4);
+    expect(response.uiDirective?.payload.products![0].category).toBe('energy-storage');
+  });
+
+  it('returns mounting systems for mounting query', async () => {
+    const response = await generateMockResponse('show me mounting rails');
+    expect(response.uiDirective?.action).toBe('SHOW_PRODUCTS');
+    expect(response.uiDirective?.payload.products!.length).toBeGreaterThan(0);
+  });
+
+  it('returns balance of system for transformer query', async () => {
+    const response = await generateMockResponse('show me transformers');
+    expect(response.uiDirective?.action).toBe('SHOW_PRODUCTS');
+    expect(response.uiDirective?.payload.products!.length).toBeGreaterThan(0);
+  });
+
+  it('returns pricing info for price query', async () => {
+    const response = await generateMockResponse('what are your prices');
+    expect(response.uiDirective?.action).toBe('SHOW_PRODUCTS');
+    expect(response.message).toContain('price');
   });
 
   it('resets scene for goodbye', async () => {

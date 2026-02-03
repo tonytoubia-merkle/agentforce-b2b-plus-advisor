@@ -115,11 +115,13 @@ export class DataCloudCustomerService {
       name: raw.FirstName || 'Guest',
       email: raw.Email || '',
       beautyProfile: {
-        skinType: (raw.Skin_Type__c || 'normal').toLowerCase(),
-        concerns: parseSemicolon(raw.Skin_Concerns__c),
-        allergies: parseSemicolon(raw.Allergies__c),
+        industry: (raw.Skin_Type__c || 'General Manufacturing').toLowerCase(),
+        primaryApplications: parseSemicolon(raw.Skin_Concerns__c),
+        certifications: parseSemicolon(raw.Allergies__c),
+        preferredProcessingMethods: [],
+        preferredResins: parseSemicolon(raw.Preferred_Brands__c),
         preferredBrands: parseSemicolon(raw.Preferred_Brands__c),
-        ageRange: '',
+        volumeTier: 'medium' as const,
       },
       orders,
       chatSummaries,
@@ -141,7 +143,6 @@ export class DataCloudCustomerService {
         country: raw.MailingCountry || '',
         isDefault: true,
       }] : [],
-      travelPreferences: undefined,
     };
   }
 
@@ -177,11 +178,13 @@ export class DataCloudCustomerService {
       name: raw.FirstName || 'Guest',
       email: raw.Email || '',
       beautyProfile: {
-        skinType: (raw.Skin_Type__c || 'normal').toLowerCase(),
-        concerns: parseSemicolon(raw.Skin_Concerns__c),
-        allergies: parseSemicolon(raw.Allergies__c),
+        industry: (raw.Skin_Type__c || 'General Manufacturing').toLowerCase(),
+        primaryApplications: parseSemicolon(raw.Skin_Concerns__c),
+        certifications: parseSemicolon(raw.Allergies__c),
+        preferredProcessingMethods: [],
+        preferredResins: parseSemicolon(raw.Preferred_Brands__c),
         preferredBrands: parseSemicolon(raw.Preferred_Brands__c),
-        ageRange: '',
+        volumeTier: 'medium' as const,
       },
       orders,
       chatSummaries,
@@ -203,7 +206,6 @@ export class DataCloudCustomerService {
         country: raw.MailingCountry || '',
         isDefault: true,
       }] : [],
-      travelPreferences: undefined,
     };
   }
 

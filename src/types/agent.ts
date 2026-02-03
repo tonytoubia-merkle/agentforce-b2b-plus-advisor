@@ -22,12 +22,22 @@ export type UIAction =
   | 'INITIATE_CHECKOUT'
   | 'CONFIRM_ORDER'
   | 'RESET_SCENE'
+  | 'SHOW_ORDER_STATUS'
+  | 'SHOW_ACCOUNT_SUMMARY'
   | 'IDENTIFY_CUSTOMER';
+
+export interface CaptureNotification {
+  type: 'contact_created' | 'meaningful_event' | 'profile_enrichment';
+  label: string;
+  detail?: string;
+}
 
 export interface UIDirectivePayload {
   products?: Product[];
   welcomeMessage?: string;
   welcomeSubtext?: string;
+  customerEmail?: string;
+  captures?: CaptureNotification[];
   sceneContext?: {
     setting: SceneSetting;
     mood?: string;
@@ -47,16 +57,20 @@ export interface UIDirectivePayload {
     orderId: string;
     estimatedDelivery: string;
   };
-  /** Email captured from anonymous user for identity resolution. */
-  customerEmail?: string;
-  /** Background captures that occurred alongside this response. */
-  captures?: CaptureNotification[];
-}
-
-/** A background data-capture event the agent performed silently. */
-export interface CaptureNotification {
-  type: 'contact_created' | 'meaningful_event' | 'profile_enrichment';
-  label: string;
+  orderStatus?: {
+    orderId: string;
+    status: string;
+    trackingNumber?: string;
+    estimatedDelivery?: string;
+    lineItems?: { productName: string; quantity: number }[];
+  };
+  accountSummary?: {
+    totalOrders: number;
+    openOrders: number;
+    ytdSpend: number;
+    accountTier: string;
+  };
+  suggestedActions?: string[];
 }
 
 export interface AgentResponse {

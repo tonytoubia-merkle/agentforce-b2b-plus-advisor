@@ -1,15 +1,13 @@
 export type IdentityTier = 'known' | 'appended' | 'anonymous';
 
 // ─── Data Provenance & Usage Permissions ────────────────────────
-// Tags every piece of customer context with HOW it was obtained,
-// which determines HOW the agent may reference it.
 export type DataProvenance =
-  | 'stated'          // 0P: customer said it in conversation
-  | 'declared'        // 1P-explicit: preference form, account profile
-  | 'observed'        // 1P-behavioral: purchase history, orders
-  | 'inferred'        // 1P-implicit: browse behavior, click patterns
-  | 'agent_inferred'  // Derived: agent's inference from conversations
-  | 'appended';       // 3P: Merkury or other third-party append
+  | 'stated'
+  | 'declared'
+  | 'observed'
+  | 'inferred'
+  | 'agent_inferred'
+  | 'appended';
 
 export type UsagePermission = 'direct' | 'soft' | 'influence_only';
 
@@ -37,12 +35,10 @@ export interface MerkuryIdentity {
 
 // ─── 3P: Merkury Appended Data ──────────────────────────────────
 export interface AppendedProfile {
-  ageRange?: string;
-  gender?: string;
-  householdIncome?: string;
-  hasChildren?: boolean;
-  homeOwnership?: 'own' | 'rent' | 'unknown';
-  educationLevel?: string;
+  companySize?: string;
+  industryVertical?: string;
+  annualRevenue?: string;
+  employeeCount?: string;
   interests?: string[];
   lifestyleSignals?: string[];
   geoRegion?: string;
@@ -54,19 +50,23 @@ export interface OrderLineItem {
   productName: string;
   quantity: number;
   unitPrice: number;
+  unit?: string;
   isGift?: boolean;
 }
 
 export interface OrderRecord {
   orderId: string;
   orderDate: string;
-  channel: 'online' | 'in-store' | 'mobile-app';
+  channel: 'online' | 'phone' | 'sales-rep' | 'in-store' | 'mobile-app';
   lineItems: OrderLineItem[];
   totalAmount: number;
-  status: 'completed' | 'shipped' | 'returned';
+  status: 'completed' | 'shipped' | 'in-transit' | 'processing' | 'returned' | 'backordered';
+  poNumber?: string;
+  trackingNumber?: string;
+  estimatedDelivery?: string;
 }
 
-// ─── Summarized Chat Context (Agent-generated) ──────────────────
+// ─── Summarized Chat Context ────────────────────────────────────
 export interface ChatSummary {
   sessionDate: string;
   summary: string;
@@ -74,7 +74,7 @@ export interface ChatSummary {
   topicsDiscussed: string[];
 }
 
-// ─── Meaningful Events (Agent-captured) ─────────────────────────
+// ─── Meaningful Events ──────────────────────────────────────────
 export interface MeaningfulEvent {
   eventType: 'preference' | 'milestone' | 'life-event' | 'concern' | 'intent';
   description: string;
@@ -87,27 +87,29 @@ export interface MeaningfulEvent {
 export interface BrowseSession {
   sessionDate: string;
   categoriesBrowsed: string[];
-  productsViewed: string[];   // product IDs
+  productsViewed: string[];
   durationMinutes: number;
   device: 'desktop' | 'mobile' | 'tablet';
 }
 
-// ─── 1P Profile Data (Preference Center) ────────────────────────
-export interface ProfilePreferences {
-  skinType: 'dry' | 'oily' | 'combination' | 'sensitive' | 'normal';
-  concerns: string[];
-  allergies: string[];
-  fragrancePreference?: 'love' | 'sensitive' | 'fragrance-free';
-  communicationPrefs?: {
-    email: boolean;
-    sms: boolean;
-    push: boolean;
-  };
+// ─── 1P Account Profile (B2B) ───────────────────────────────────
+export interface AccountPreferences {
+  industry: string;
+  primaryApplications: string[];
+  certifications: string[];
+  preferredProcessingMethods: string[];
+  preferredResins: string[];
   preferredBrands: string[];
-  ageRange?: string;
+  volumeTier?: string;
+  communicationPrefs?: { email: boolean; phone: boolean; sms: boolean };
 }
 
-// ─── Loyalty Data (Salesforce Loyalty Management) ───────────────
+/** @deprecated Use AccountPreferences directly */
+export type ProfilePreferences = AccountPreferences;
+/** Legacy alias — kept for field name compat in CustomerProfile */
+export type BeautyProfile = AccountPreferences;
+
+// ─── Account Tier ───────────────────────────────────────────────
 export interface LoyaltyData {
   tier: 'bronze' | 'silver' | 'gold' | 'platinum';
   pointsBalance: number;
@@ -118,54 +120,33 @@ export interface LoyaltyData {
   nextTierThreshold?: number;
 }
 
-// ─── Agent-Captured Profile (conversational enrichment) ─────────
-// Fields the agent captures naturally through conversation, NOT via forms.
-// These persist on the customer record and inform all future interactions.
-// Each field tracks when/how it was captured for transparency.
+// ─── Agent-Captured Profile ─────────────────────────────────────
 export interface CapturedProfileField<T = string> {
   value: T;
-  capturedAt: string;       // ISO date when the agent noted this
-  capturedFrom: string;     // e.g. "chat session 2025-12-18", "inferred from order"
-  confidence: 'stated' | 'inferred';  // did customer say it directly, or did agent infer it?
+  capturedAt: string;
+  capturedFrom: string;
+  confidence: 'stated' | 'inferred';
 }
 
 export interface AgentCapturedProfile {
-  // Personal milestones & dates
-  birthday?: CapturedProfileField;             // "My birthday is in March"
-  anniversary?: CapturedProfileField;          // "Our anniversary is February 14"
-  partnerName?: CapturedProfileField;          // "I'm shopping for my wife, Elena"
-
-  // Gifting context
-  giftsFor?: CapturedProfileField<string[]>;   // ["partner", "mother", "sister"]
-  upcomingOccasions?: CapturedProfileField<string[]>; // ["anniversary", "mother's day"]
-
-  // Lifestyle & routine
-  morningRoutineTime?: CapturedProfileField;   // "I only have 5 minutes in the morning"
-  makeupFrequency?: CapturedProfileField;      // "daily", "weekends only", "special occasions"
-  exerciseRoutine?: CapturedProfileField;      // "I run every morning", "yoga 3x/week"
-  workEnvironment?: CapturedProfileField;      // "office with AC", "outdoors", "WFH"
-
-  // Beauty philosophy
-  beautyPriority?: CapturedProfileField;       // "I care most about ingredients", "I want it fast"
-  priceRange?: CapturedProfileField;           // "I don't mind spending more for quality"
-  sustainabilityPref?: CapturedProfileField;   // "I only buy cruelty-free"
-
-  // Skin/body context the agent picks up
-  climateContext?: CapturedProfileField;       // "It's really dry where I live"
-  waterIntake?: CapturedProfileField;          // "I know I don't drink enough water"
-  sleepPattern?: CapturedProfileField;         // "I'm a night owl"
-}
-
-// ─── Legacy compat alias ────────────────────────────────────────
-export type BeautyProfile = ProfilePreferences;
-
-export interface TravelPreferences {
-  upcomingTrips?: {
-    destination: string;
-    departureDate: string;
-    climate: 'hot' | 'cold' | 'temperate' | 'humid';
-  }[];
-  prefersTravelSize: boolean;
+  // B2B renewable energy fields
+  annualVolume?: CapturedProfileField;
+  budgetCycle?: CapturedProfileField;
+  decisionMakers?: CapturedProfileField<string[]>;
+  primaryApplication?: CapturedProfileField;
+  processingCapabilities?: CapturedProfileField<string[]>;
+  qualityStandards?: CapturedProfileField;
+  sustainabilityGoals?: CapturedProfileField;
+  preferredLeadTime?: CapturedProfileField;
+  warehouseLocations?: CapturedProfileField<string[]>;
+  inventoryStrategy?: CapturedProfileField;
+  accountManager?: CapturedProfileField;
+  priceSensitivity?: CapturedProfileField;
+  competitorProducts?: CapturedProfileField;
+  painPoints?: CapturedProfileField;
+  projectPipeline?: CapturedProfileField;
+  gridInterconnection?: CapturedProfileField;
+  siteConditions?: CapturedProfileField;
 }
 
 /** @deprecated Use OrderRecord instead */
@@ -179,10 +160,11 @@ export interface PurchaseRecord {
 
 export interface PaymentMethod {
   id: string;
-  type: 'card' | 'paypal' | 'applepay';
+  type: 'card' | 'net-terms' | 'wire' | 'ach' | 'paypal' | 'applepay';
   last4?: string;
   brand?: string;
   isDefault: boolean;
+  terms?: string;
 }
 
 export interface Address {
@@ -201,40 +183,31 @@ export interface CustomerProfile {
   id: string;
   name: string;
   email: string;
+  company?: string;
+  jobTitle?: string;
 
-  // 1P Profile (preference center)
-  beautyProfile: ProfilePreferences;
+  /** Account preferences (industry, applications, certs). Named beautyProfile for legacy compat. */
+  beautyProfile: AccountPreferences;
 
-  // Purchase history (order-level)
   orders: OrderRecord[];
-  /** @deprecated Use orders instead */
+  /** @deprecated */
   purchaseHistory: PurchaseRecord[];
 
-  // Agent-generated context
   chatSummaries: ChatSummary[];
   meaningfulEvents: MeaningfulEvent[];
-
-  // Browse behavior
   browseSessions: BrowseSession[];
 
-  // Loyalty
   loyalty: LoyaltyData | null;
-  /** @deprecated Use loyalty?.tier instead */
-  loyaltyTier?: 'bronze' | 'silver' | 'gold' | 'platinum';
   lifetimeValue?: number;
 
-  // Agent-captured conversational profile
   agentCapturedProfile?: AgentCapturedProfile;
 
-  // Identity
   merkuryIdentity?: MerkuryIdentity;
   appendedProfile?: AppendedProfile;
 
-  // Legacy fields kept for backward compat
   savedPaymentMethods: PaymentMethod[];
   shippingAddresses: Address[];
-  travelPreferences?: TravelPreferences;
-  /** @deprecated Use meaningfulEvents / browseSessions instead */
+  /** @deprecated */
   recentActivity?: RecentActivity[];
 }
 
@@ -250,9 +223,10 @@ export interface CustomerSessionContext {
   customerId: string;
   name: string;
   email?: string;
+  company?: string;
   identityTier: IdentityTier;
-  skinType?: string;
-  concerns?: string[];
+  industry?: string;
+  primaryApplications?: string[];
   recentPurchases?: string[];
   recentActivity?: string[];
   appendedInterests?: string[];
@@ -261,10 +235,7 @@ export interface CustomerSessionContext {
   chatContext?: string[];
   meaningfulEvents?: string[];
   browseInterests?: string[];
-  // Agent-captured conversational profile fields (flattened for the agent)
   capturedProfile?: string[];
-  // Fields the agent should try to capture (missing from profile)
   missingProfileFields?: string[];
-  // Provenance-tagged context fields for privacy-aware agent prompting
   taggedContext?: TaggedContextField[];
 }

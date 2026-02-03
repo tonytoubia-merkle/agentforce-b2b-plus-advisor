@@ -1,28 +1,28 @@
 export type ProductCategory =
-  | 'moisturizer'
-  | 'cleanser'
-  | 'serum'
-  | 'sunscreen'
-  | 'mask'
-  | 'toner'
-  | 'travel-kit'
-  | 'eye-cream'
-  | 'foundation'
-  | 'lipstick'
-  | 'mascara'
-  | 'blush'
-  | 'fragrance'
-  | 'shampoo'
-  | 'conditioner'
-  | 'hair-treatment'
-  | 'spot-treatment';
+  | 'wind-turbine'
+  | 'solar-panel'
+  | 'inverter'
+  | 'mounting-system'
+  | 'energy-storage'
+  | 'balance-of-system'
+  | 'monitoring'
+  | 'transformer'
+  | 'cable-harness';
 
 export interface ProductAttributes {
-  skinType?: ('dry' | 'oily' | 'combination' | 'sensitive' | 'normal')[];
-  concerns?: string[];
-  ingredients?: string[];
-  size?: string;
-  isTravel?: boolean;
+  powerRating?: string;
+  voltage?: string;
+  efficiency?: string;
+  weight?: string;
+  dimensions?: string;
+  warranty?: string;
+  industries?: string[];
+  certifications?: string[];
+  packagingSize?: string;
+  minOrderQty?: string;
+  leadTimeDays?: number;
+  sustainableContent?: string;
+  processingMethod?: string[];
 }
 
 export interface Product {

@@ -1,907 +1,941 @@
 import type { CustomerProfile } from '@/types/customer';
 
-export interface PersonaMeta {
-  id: string;
-  label: string;
-  subtitle: string;
-  traits: string[];
-  profile: CustomerProfile;
-}
-
-// ─── Sarah Chen: Known Customer, Loyalty Gold ───────────────────
-// Rich data: 4 orders, 2 chats, 3 meaningful events (all traceable to chats), browse data, loyalty
-const sarahChen: CustomerProfile = {
-  id: 'persona-sarah',
-  name: 'Sarah',
-  email: 'sarah.chen@example.com',
-
-  beautyProfile: {
-    skinType: 'sensitive',
-    concerns: ['hydration', 'redness', 'anti-aging'],
-    allergies: ['fragrance'],
-    fragrancePreference: 'fragrance-free',
-    communicationPrefs: { email: true, sms: true, push: false },
-    preferredBrands: ['SERENE', 'LUMIERE'],
-    ageRange: '30-40',
-  },
-
-  orders: [
-    {
-      orderId: 'ORD-2025-0847',
-      orderDate: '2025-06-12',
-      channel: 'online',
-      status: 'completed',
-      totalAmount: 94.00,
-      lineItems: [
-        { productId: 'cleanser-gentle', productName: 'Cloud Cream Cleanser', quantity: 1, unitPrice: 36.00 },
-        { productId: 'moisturizer-sensitive', productName: 'Hydra-Calm Sensitive Moisturizer', quantity: 1, unitPrice: 58.00 },
-      ],
-    },
-    {
-      orderId: 'ORD-2025-1203',
-      orderDate: '2025-09-08',
-      channel: 'in-store',
-      status: 'completed',
-      totalAmount: 45.00,
-      lineItems: [
-        { productId: 'mask-hydrating', productName: 'Deep Dew Hydrating Mask', quantity: 1, unitPrice: 45.00 },
-      ],
-    },
-    {
-      orderId: 'ORD-2025-1456',
-      orderDate: '2025-11-15',
-      channel: 'online',
-      status: 'completed',
-      totalAmount: 94.00,
-      lineItems: [
-        { productId: 'cleanser-gentle', productName: 'Cloud Cream Cleanser', quantity: 1, unitPrice: 36.00 },
-        { productId: 'moisturizer-sensitive', productName: 'Hydra-Calm Sensitive Moisturizer', quantity: 1, unitPrice: 58.00 },
-      ],
-    },
-    {
-      orderId: 'ORD-2025-1789',
-      orderDate: '2025-12-20',
-      channel: 'mobile-app',
-      status: 'completed',
-      totalAmount: 70.00,
-      lineItems: [
-        { productId: 'sunscreen-lightweight', productName: 'Invisible Shield SPF 50', quantity: 1, unitPrice: 42.00 },
-        { productId: 'mist-refreshing', productName: 'Cooling Facial Mist', quantity: 1, unitPrice: 28.00 },
-      ],
-    },
-  ],
-
-  chatSummaries: [
-    {
-      sessionDate: '2025-09-08',
-      summary: 'Sarah visited the in-store advisor asking about overnight hydration for sensitive skin. Recommended the Deep Dew Hydrating Mask. She was concerned about fragrance in skincare and confirmed she avoids all fragranced products.',
-      sentiment: 'positive',
-      topicsDiscussed: ['overnight hydration', 'sensitive skin', 'fragrance allergy'],
-    },
-    {
-      sessionDate: '2025-12-18',
-      summary: 'Sarah asked for travel-friendly skincare for an upcoming work trip to Mumbai (hot, humid climate). Recommended SPF 50 and Cooling Facial Mist as carry-on essentials. She also mentioned interest in trying retinol but worried about sensitivity.',
-      sentiment: 'positive',
-      topicsDiscussed: ['travel skincare', 'hot climate', 'SPF', 'retinol interest', 'sensitivity concern'],
-    },
-  ],
-
-  // Every event here is traceable to a chat session above
-  meaningfulEvents: [
-    {
-      eventType: 'preference',
-      description: 'Strictly fragrance-free — allergic reaction to fragranced products',
-      capturedAt: '2025-09-08', // from chat #1
-      agentNote: 'Never recommend fragranced products to this customer',
-    },
-    {
-      eventType: 'life-event',
-      description: 'Work trip to Mumbai, India (2 weeks, hot/humid climate)',
-      capturedAt: '2025-12-18', // from chat #2
-      agentNote: 'Purchased travel SPF kit before departure. Trip ended around Jan 15.',
-      metadata: { destination: 'Mumbai, India', climate: 'hot', tripEnd: '2026-01-15' },
-    },
-    {
-      eventType: 'concern',
-      description: 'Expressed interest in retinol but concerned about irritation on her sensitive skin',
-      capturedAt: '2025-12-18', // from chat #2
-      agentNote: 'Consider recommending encapsulated retinol (gentler delivery) when she brings this up again',
-    },
-  ],
-
-  agentCapturedProfile: {
-    // Captured from chat #2 (2025-12-18) — she mentioned her work travel schedule
-    workEnvironment: {
-      value: 'Office, travels frequently for work',
-      capturedAt: '2025-12-18',
-      capturedFrom: 'chat session 2025-12-18',
-      confidence: 'stated',
-    },
-    // Captured from chat #1 (2025-09-08) — discussed her evening routine
-    morningRoutineTime: {
-      value: 'Has about 10 minutes in the morning, prefers to do more at night',
-      capturedAt: '2025-09-08',
-      capturedFrom: 'chat session 2025-09-08',
-      confidence: 'stated',
-    },
-    // Captured from chat #1 — she explicitly said she avoids fragrance
-    beautyPriority: {
-      value: 'Ingredient-conscious, prioritizes gentle/clean formulations',
-      capturedAt: '2025-09-08',
-      capturedFrom: 'chat session 2025-09-08',
-      confidence: 'inferred',
-    },
-    // Not yet captured: birthday, anniversary, giftsFor, exerciseRoutine, priceRange
-  },
-
-  browseSessions: [
-    {
-      sessionDate: '2026-01-22',
-      categoriesBrowsed: ['serum'],
-      productsViewed: ['serum-retinol', 'serum-anti-aging'],
-      durationMinutes: 8,
-      device: 'mobile',
-    },
-    {
-      sessionDate: '2026-01-28',
-      categoriesBrowsed: ['eye-cream', 'serum'],
-      productsViewed: ['eye-cream', 'serum-vitamin-c'],
-      durationMinutes: 5,
-      device: 'desktop',
-    },
-  ],
-
-  loyalty: {
-    tier: 'gold',
-    pointsBalance: 2450,
-    lifetimePoints: 4800,
-    memberSince: '2024-11-01',
-    rewardsAvailable: [
-      { name: '$10 off next purchase', pointsCost: 1000 },
-      { name: 'Free deluxe sample set', pointsCost: 1500 },
-    ],
-    nextTierThreshold: 6000,
-    tierExpiryDate: '2026-11-01',
-  },
-
-  merkuryIdentity: {
-    merkuryId: 'MRK-SC-90210',
-    identityTier: 'known',
-    confidence: 0.97,
-    resolvedAt: new Date().toISOString(),
-  },
-
-  // Legacy fields
-  purchaseHistory: [
-    { productId: 'cleanser-gentle', productName: 'Cloud Cream Cleanser', purchaseDate: '2025-11-15', quantity: 1, rating: 5 },
-    { productId: 'moisturizer-sensitive', productName: 'Hydra-Calm Sensitive Moisturizer', purchaseDate: '2025-11-15', quantity: 1, rating: 5 },
-    { productId: 'sunscreen-lightweight', productName: 'Invisible Shield SPF 50', purchaseDate: '2025-12-20', quantity: 1, rating: 4 },
-    { productId: 'mist-refreshing', productName: 'Cooling Facial Mist', purchaseDate: '2025-12-20', quantity: 1 },
-  ],
-  savedPaymentMethods: [
-    { id: 'pm-1', type: 'card', last4: '4242', brand: 'visa', isDefault: true },
-  ],
-  shippingAddresses: [
-    { id: 'addr-1', name: 'Sarah Chen', line1: '123 Main St', city: 'San Francisco', state: 'CA', postalCode: '94102', country: 'US', isDefault: true },
-  ],
-  travelPreferences: { upcomingTrips: [], prefersTravelSize: true },
-  recentActivity: [
-    { type: 'trip', description: 'Completed work trip to Mumbai', date: '2026-01-15', metadata: { destination: 'Mumbai, India', climate: 'hot', purpose: 'work' } },
-    { type: 'purchase', description: 'Purchased travel SPF kit for Mumbai trip', date: '2025-12-20', productIds: ['sunscreen-lightweight', 'mist-refreshing'] },
-    { type: 'browse', description: 'Browsed retinol serums', date: '2026-01-22', productIds: ['serum-retinol'] },
-  ],
-  loyaltyTier: 'gold',
-  lifetimeValue: 303,
-};
-
-// ─── James Rodriguez: Known Customer, NO Loyalty ────────────────
-// 1 order, 2 chats (second is recent and captures anniversary intent), events match chats
-const jamesRodriguez: CustomerProfile = {
-  id: 'persona-james',
-  name: 'James',
-  email: 'james.rodriguez@example.com',
-
-  beautyProfile: {
-    skinType: 'oily',
-    concerns: ['acne', 'oil control', 'pores'],
-    allergies: [],
-    preferredBrands: ['DERMAFIX'],
-    ageRange: '25-35',
-  },
-
-  orders: [
-    {
-      orderId: 'ORD-2025-0612',
-      orderDate: '2025-07-10',
-      channel: 'online',
-      status: 'completed',
-      totalAmount: 32.00,
-      lineItems: [
-        { productId: 'cleanser-acne', productName: 'Clear Start Salicylic Cleanser', quantity: 1, unitPrice: 32.00 },
-      ],
-    },
-  ],
-
-  chatSummaries: [
-    {
-      sessionDate: '2025-07-10',
-      summary: 'James asked for help with oily skin and breakouts. Recommended the Clear Start Salicylic Cleanser as a starting point. He mentioned he was new to skincare and wanted to keep things simple.',
-      sentiment: 'positive',
-      topicsDiscussed: ['oily skin', 'acne', 'beginner routine'],
-    },
-    {
-      sessionDate: '2026-01-25',
-      summary: 'James came back looking for a fragrance gift for his partner — anniversary coming up. Browsed Jardin de Nuit and Bois Sauvage together. He seemed drawn to the floral notes in Jardin de Nuit. Also mentioned wanting to build out his skincare routine beyond just the cleanser.',
-      sentiment: 'positive',
-      topicsDiscussed: ['fragrance', 'gifting', 'anniversary', 'skincare routine expansion'],
-    },
-  ],
-
-  // Every event traceable to a chat above
-  meaningfulEvents: [
-    {
-      eventType: 'intent',
-      description: 'Wants to build a proper skincare routine beyond just a cleanser',
-      capturedAt: '2025-07-10', // from chat #1
-      agentNote: 'Only purchased cleanser so far. Good candidate for a step-up to serum + moisturizer.',
-    },
-    {
-      eventType: 'intent',
-      description: 'Anniversary coming up — looking for a fragrance gift for his partner',
-      capturedAt: '2026-01-25', // from chat #2
-      agentNote: 'Browsed Jardin de Nuit and Bois Sauvage. Seemed drawn to floral scents for gifting.',
-      metadata: { occasion: 'anniversary', giftFor: 'partner' },
-    },
-  ],
-
-  agentCapturedProfile: {
-    // Captured from chat #2 (2026-01-25) — mentioned anniversary and partner
-    anniversary: {
-      value: 'Coming up in February',
-      capturedAt: '2026-01-25',
-      capturedFrom: 'chat session 2026-01-25',
-      confidence: 'stated',
-    },
-    giftsFor: {
-      value: ['partner'],
-      capturedAt: '2026-01-25',
-      capturedFrom: 'chat session 2026-01-25',
-      confidence: 'stated',
-    },
-    // Captured from chat #1 (2025-07-10) — said he's new to skincare
-    beautyPriority: {
-      value: 'Wants to keep it simple, new to skincare',
-      capturedAt: '2025-07-10',
-      capturedFrom: 'chat session 2025-07-10',
-      confidence: 'stated',
-    },
-    // Not yet captured: birthday, morningRoutineTime, exerciseRoutine, workEnvironment, priceRange
-  },
-
-  browseSessions: [
-    {
-      sessionDate: '2026-01-25',
-      categoriesBrowsed: ['fragrance'],
-      productsViewed: ['fragrance-floral', 'fragrance-woody'],
-      durationMinutes: 12,
-      device: 'mobile',
-    },
-    {
-      sessionDate: '2026-01-20',
-      categoriesBrowsed: ['serum'],
-      productsViewed: ['serum-niacinamide'],
-      durationMinutes: 4,
-      device: 'desktop',
-    },
-  ],
-
-  loyalty: null, // Not a loyalty member — opportunity to enroll
-
-  merkuryIdentity: {
-    merkuryId: 'MRK-JR-78701',
-    identityTier: 'known',
-    confidence: 0.92,
-    resolvedAt: new Date().toISOString(),
-  },
-
-  // Legacy fields
-  purchaseHistory: [
-    { productId: 'cleanser-acne', productName: 'Clear Start Salicylic Cleanser', purchaseDate: '2025-07-10', quantity: 1, rating: 4 },
-  ],
-  savedPaymentMethods: [
-    { id: 'pm-2', type: 'card', last4: '8888', brand: 'mastercard', isDefault: true },
-  ],
-  shippingAddresses: [
-    { id: 'addr-2', name: 'James Rodriguez', line1: '456 Oak Ave', city: 'Austin', state: 'TX', postalCode: '78701', country: 'US', isDefault: true },
-  ],
-  recentActivity: [
-    { type: 'browse', description: 'Browsed fragrances — anniversary coming up', date: '2026-01-25', productIds: ['fragrance-floral', 'fragrance-woody'] },
-    { type: 'browse', description: 'Viewed pore-refining products', date: '2026-01-20', productIds: ['serum-niacinamide'] },
-  ],
-  loyaltyTier: undefined,
-  lifetimeValue: 32,
-};
-
-// ─── Aisha Patel: Appended Only (Unknown to Brand) ─────────────
-// Zero brand data. Only Merkury appended 3P data.
-const aishaPatel: CustomerProfile = {
-  id: 'persona-aisha',
-  name: 'Aisha',
-  email: '',
-
-  beautyProfile: {
-    skinType: 'combination',
-    concerns: [],
-    allergies: [],
-    preferredBrands: [],
-  },
-
-  orders: [],
-  chatSummaries: [],
-  meaningfulEvents: [],
-  browseSessions: [],
-  loyalty: null,
-  purchaseHistory: [],
-  savedPaymentMethods: [],
-  shippingAddresses: [],
-  recentActivity: [],
-
-  merkuryIdentity: {
-    merkuryId: 'MRK-AP-10001',
-    identityTier: 'appended',
-    confidence: 0.74,
-    resolvedAt: new Date().toISOString(),
-  },
-
-  appendedProfile: {
-    ageRange: '28-35',
-    gender: 'female',
-    householdIncome: '$100k-$150k',
-    hasChildren: false,
-    homeOwnership: 'rent',
-    educationLevel: "bachelor's",
-    interests: ['luxury beauty', 'clean beauty', 'yoga', 'wellness'],
-    lifestyleSignals: ['wellness-focused', 'urban professional', 'fitness enthusiast'],
-    geoRegion: 'New York Metro',
-  },
-};
-
-// ─── Anonymous Visitor ──────────────────────────────────────────
-// Merkury fired but found no match at all.
-const anonymousVisitor: CustomerProfile = {
-  id: 'persona-anonymous',
-  name: 'Guest',
-  email: '',
-
-  beautyProfile: {
-    skinType: 'normal',
-    concerns: [],
-    allergies: [],
-    preferredBrands: [],
-  },
-
-  orders: [],
-  chatSummaries: [],
-  meaningfulEvents: [],
-  browseSessions: [],
-  loyalty: null,
-  purchaseHistory: [],
-  savedPaymentMethods: [],
-  shippingAddresses: [],
-  recentActivity: [],
-
-  merkuryIdentity: {
-    merkuryId: '',
-    identityTier: 'anonymous',
-    confidence: 0,
-    resolvedAt: new Date().toISOString(),
-  },
-};
-
-// ─── Maya Thompson: Known, Loyalty Platinum, Makeup Enthusiast ──
-// Heavy buyer, 3 chats, loves makeup, recently returned an item
-const mayaThompson: CustomerProfile = {
-  id: 'persona-maya',
-  name: 'Maya',
-  email: 'maya.thompson@example.com',
-
-  beautyProfile: {
-    skinType: 'normal',
-    concerns: ['brightening', 'glow'],
-    allergies: [],
-    fragrancePreference: 'love',
-    communicationPrefs: { email: true, sms: true, push: true },
-    preferredBrands: ['LUMIERE', 'MAISON'],
-    ageRange: '25-30',
-  },
-
-  orders: [
-    {
-      orderId: 'ORD-2025-0301',
-      orderDate: '2025-03-14',
-      channel: 'online',
-      status: 'completed',
-      totalAmount: 118.00,
-      lineItems: [
-        { productId: 'foundation-dewy', productName: 'Skin Glow Serum Foundation', quantity: 1, unitPrice: 52.00 },
-        { productId: 'blush-silk', productName: 'Silk Petal Blush', quantity: 1, unitPrice: 38.00 },
-        { productId: 'mascara-volume', productName: 'Lash Drama Volume Mascara', quantity: 1, unitPrice: 28.00 },
-      ],
-    },
-    {
-      orderId: 'ORD-2025-0589',
-      orderDate: '2025-06-02',
-      channel: 'in-store',
-      status: 'completed',
-      totalAmount: 159.00,
-      lineItems: [
-        { productId: 'lipstick-velvet', productName: 'Velvet Matte Lip Color', quantity: 1, unitPrice: 34.00 },
-        { productId: 'fragrance-floral', productName: 'Jardin de Nuit Eau de Parfum', quantity: 1, unitPrice: 125.00 },
-      ],
-    },
-    {
-      orderId: 'ORD-2025-0940',
-      orderDate: '2025-09-18',
-      channel: 'online',
-      status: 'completed',
-      totalAmount: 124.00,
-      lineItems: [
-        { productId: 'serum-vitamin-c', productName: 'Glow Boost Vitamin C Serum', quantity: 1, unitPrice: 72.00 },
-        { productId: 'foundation-dewy', productName: 'Skin Glow Serum Foundation', quantity: 1, unitPrice: 52.00 },
-      ],
-    },
-    {
-      orderId: 'ORD-2025-1501',
-      orderDate: '2025-12-01',
-      channel: 'online',
-      status: 'returned',
-      totalAmount: 95.00,
-      lineItems: [
-        { productId: 'serum-anti-aging', productName: 'Peptide Lift Pro Serum', quantity: 1, unitPrice: 95.00 },
-      ],
-    },
-    {
-      orderId: 'ORD-2026-0088',
-      orderDate: '2026-01-10',
-      channel: 'mobile-app',
-      status: 'completed',
-      totalAmount: 66.00,
-      lineItems: [
-        { productId: 'shampoo-repair', productName: 'Bond Repair Shampoo', quantity: 1, unitPrice: 32.00 },
-        { productId: 'conditioner-hydrating', productName: 'Silk Hydration Conditioner', quantity: 1, unitPrice: 34.00 },
-      ],
-    },
-  ],
-
-  chatSummaries: [
-    {
-      sessionDate: '2025-06-02',
-      summary: 'Maya visited in-store looking for a signature fragrance. Tested several options and loved Jardin de Nuit — said the jasmine-sandalwood blend felt "like her." Also picked up a new lip color.',
-      sentiment: 'positive',
-      topicsDiscussed: ['fragrance', 'in-store experience', 'lipstick'],
-    },
-    {
-      sessionDate: '2025-12-05',
-      summary: 'Maya reached out about returning the Peptide Lift Pro Serum — she felt it was too heavy for her skin type and didn\'t see results after 2 weeks. She asked for a lighter anti-aging alternative.',
-      sentiment: 'neutral',
-      topicsDiscussed: ['product return', 'anti-aging', 'serum texture preference'],
-    },
-    {
-      sessionDate: '2026-01-10',
-      summary: 'Maya asked about haircare for color-treated hair. Recommended the Bond Repair duo. She mentioned she recently got highlights and was worried about damage.',
-      sentiment: 'positive',
-      topicsDiscussed: ['haircare', 'color-treated hair', 'damage repair'],
-    },
-  ],
-
-  meaningfulEvents: [
-    {
-      eventType: 'preference',
-      description: 'Jardin de Nuit is her signature fragrance — "feels like me"',
-      capturedAt: '2025-06-02', // from chat #1
-      agentNote: 'Could use this for personalized scent recommendations or layering suggestions',
-    },
-    {
-      eventType: 'concern',
-      description: 'Returned Peptide Lift Pro — found it too heavy, wants lighter anti-aging options',
-      capturedAt: '2025-12-05', // from chat #2
-      agentNote: 'Avoid recommending heavy serums. Try Vitamin C or encapsulated retinol instead.',
-    },
-    {
-      eventType: 'life-event',
-      description: 'Recently got hair highlights, concerned about color damage',
-      capturedAt: '2026-01-10', // from chat #3
-      agentNote: 'Recommend bond-repair products and color-safe formulas',
-    },
-  ],
-
-  agentCapturedProfile: {
-    // From chat #1 — Jardin de Nuit is her signature
-    beautyPriority: {
-      value: 'Loves makeup and fragrance, views beauty as self-expression',
-      capturedAt: '2025-06-02',
-      capturedFrom: 'chat session 2025-06-02',
-      confidence: 'inferred',
-    },
-    // From chat #2 — returned a product because texture was wrong
-    priceRange: {
-      value: 'Willing to spend on premium products but expects them to work',
-      capturedAt: '2025-12-05',
-      capturedFrom: 'chat session 2025-12-05',
-      confidence: 'inferred',
-    },
-    makeupFrequency: {
-      value: 'Daily — foundation, blush, mascara are staples',
-      capturedAt: '2025-06-02',
-      capturedFrom: 'inferred from purchase pattern',
-      confidence: 'inferred',
-    },
-    // Not yet captured: birthday, anniversary, morningRoutineTime, exerciseRoutine, workEnvironment
-  },
-
-  browseSessions: [
-    {
-      sessionDate: '2026-01-20',
-      categoriesBrowsed: ['foundation', 'blush'],
-      productsViewed: ['foundation-dewy', 'blush-silk'],
-      durationMinutes: 6,
-      device: 'mobile',
-    },
-  ],
-
-  loyalty: {
-    tier: 'platinum',
-    pointsBalance: 5200,
-    lifetimePoints: 12400,
-    memberSince: '2024-03-01',
-    rewardsAvailable: [
-      { name: '$25 off next purchase', pointsCost: 2000 },
-      { name: 'Exclusive early access event', pointsCost: 3000 },
-    ],
-    tierExpiryDate: '2027-03-01',
-  },
-
-  merkuryIdentity: {
-    merkuryId: 'MRK-MT-30302',
-    identityTier: 'known',
-    confidence: 0.99,
-    resolvedAt: new Date().toISOString(),
-  },
-
-  purchaseHistory: [],
-  savedPaymentMethods: [
-    { id: 'pm-3', type: 'applepay', isDefault: true },
-  ],
-  shippingAddresses: [
-    { id: 'addr-3', name: 'Maya Thompson', line1: '789 Elm St', city: 'Los Angeles', state: 'CA', postalCode: '90028', country: 'US', isDefault: true },
-  ],
-  recentActivity: [],
-  lifetimeValue: 562,
-};
-
-// ─── David Kim: Known, Loyalty Silver, Routine Builder ──────────
-// 2 orders, 1 chat about building a routine, methodical buyer
-const davidKim: CustomerProfile = {
-  id: 'persona-david',
-  name: 'David',
-  email: 'david.kim@example.com',
-
-  beautyProfile: {
-    skinType: 'combination',
-    concerns: ['pores', 'texture', 'oil control'],
-    allergies: [],
-    preferredBrands: ['DERMAFIX', 'SERENE'],
-    ageRange: '30-40',
-  },
-
-  orders: [
-    {
-      orderId: 'ORD-2025-0720',
-      orderDate: '2025-08-15',
-      channel: 'online',
-      status: 'completed',
-      totalAmount: 70.00,
-      lineItems: [
-        { productId: 'cleanser-acne', productName: 'Clear Start Salicylic Cleanser', quantity: 1, unitPrice: 32.00 },
-        { productId: 'serum-niacinamide', productName: 'Pore Refine Niacinamide Serum', quantity: 1, unitPrice: 38.00 },
-      ],
-    },
-    {
-      orderId: 'ORD-2025-1320',
-      orderDate: '2025-11-22',
-      channel: 'online',
-      status: 'completed',
-      totalAmount: 76.00,
-      lineItems: [
-        { productId: 'toner-aha', productName: 'Glow Tonic AHA Toner', quantity: 1, unitPrice: 34.00 },
-        { productId: 'sunscreen-lightweight', productName: 'Invisible Shield SPF 50', quantity: 1, unitPrice: 42.00 },
-      ],
-    },
-  ],
-
-  chatSummaries: [
-    {
-      sessionDate: '2025-08-15',
-      summary: 'David asked for help building a simple skincare routine for combination skin. He wanted to address enlarged pores and occasional oiliness. Recommended the Salicylic Cleanser and Niacinamide Serum as a two-step starting point. He was very methodical — asked about ingredient interactions and application order.',
-      sentiment: 'positive',
-      topicsDiscussed: ['combination skin', 'pores', 'routine building', 'ingredient interactions'],
-    },
-  ],
-
-  meaningfulEvents: [
-    {
-      eventType: 'preference',
-      description: 'Very methodical about skincare — wants to understand ingredient interactions and correct application order',
-      capturedAt: '2025-08-15', // from chat #1
-      agentNote: 'Provide detailed ingredient explanations when recommending. This customer appreciates the science.',
-    },
-  ],
-
-  agentCapturedProfile: {
-    // From chat #1 — asked detailed ingredient questions
-    beautyPriority: {
-      value: 'Science-driven, wants to understand how ingredients interact before buying',
-      capturedAt: '2025-08-15',
-      capturedFrom: 'chat session 2025-08-15',
-      confidence: 'stated',
-    },
-    morningRoutineTime: {
-      value: 'Has time for a full routine — not rushed',
-      capturedAt: '2025-08-15',
-      capturedFrom: 'chat session 2025-08-15',
-      confidence: 'inferred',
-    },
-    // Not yet captured: birthday, anniversary, giftsFor, exerciseRoutine, workEnvironment, priceRange
-  },
-
-  browseSessions: [
-    {
-      sessionDate: '2026-01-15',
-      categoriesBrowsed: ['serum', 'moisturizer'],
-      productsViewed: ['serum-retinol', 'moisturizer-sensitive'],
-      durationMinutes: 11,
-      device: 'desktop',
-    },
-    {
-      sessionDate: '2026-01-27',
-      categoriesBrowsed: ['eye-cream'],
-      productsViewed: ['eye-cream'],
-      durationMinutes: 3,
-      device: 'mobile',
-    },
-  ],
-
-  loyalty: {
-    tier: 'silver',
-    pointsBalance: 980,
-    lifetimePoints: 1460,
-    memberSince: '2025-08-15',
-    rewardsAvailable: [
-      { name: '$5 off next purchase', pointsCost: 500 },
-    ],
-    nextTierThreshold: 3000,
-    tierExpiryDate: '2026-08-15',
-  },
-
-  merkuryIdentity: {
-    merkuryId: 'MRK-DK-60614',
-    identityTier: 'known',
-    confidence: 0.94,
-    resolvedAt: new Date().toISOString(),
-  },
-
-  purchaseHistory: [],
-  savedPaymentMethods: [
-    { id: 'pm-4', type: 'card', last4: '1234', brand: 'amex', isDefault: true },
-  ],
-  shippingAddresses: [
-    { id: 'addr-4', name: 'David Kim', line1: '321 Lake Shore Dr', city: 'Chicago', state: 'IL', postalCode: '60614', country: 'US', isDefault: true },
-  ],
-  recentActivity: [],
-  lifetimeValue: 146,
-};
-
-// ─── Priya Sharma: Appended, Different Interests ────────────────
-// Merkury appended only, but different profile from Aisha — older, has children, luxury/anti-aging focus
-const priyaSharma: CustomerProfile = {
-  id: 'persona-priya',
-  name: 'Priya',
-  email: '',
-
-  beautyProfile: {
-    skinType: 'combination',
-    concerns: [],
-    allergies: [],
-    preferredBrands: [],
-  },
-
-  orders: [],
-  chatSummaries: [],
-  meaningfulEvents: [],
-  browseSessions: [],
-  loyalty: null,
-  purchaseHistory: [],
-  savedPaymentMethods: [],
-  shippingAddresses: [],
-  recentActivity: [],
-
-  merkuryIdentity: {
-    merkuryId: 'MRK-PS-75201',
-    identityTier: 'appended',
-    confidence: 0.68,
-    resolvedAt: new Date().toISOString(),
-  },
-
-  appendedProfile: {
-    ageRange: '40-50',
-    gender: 'female',
-    householdIncome: '$150k-$250k',
-    hasChildren: true,
-    homeOwnership: 'own',
-    educationLevel: "master's",
-    interests: ['luxury beauty', 'anti-aging', 'spa treatments', 'fine dining'],
-    lifestyleSignals: ['affluent suburban', 'self-care focused', 'frequent spa-goer'],
-    geoRegion: 'Dallas-Fort Worth',
-  },
-};
-
-// ─── Marcus Williams: Known, 1 order, 1 chat, brand new ────────
-// Just getting started — 1 order last week, 1 chat that prompted it, no loyalty yet
-const marcusWilliams: CustomerProfile = {
-  id: 'persona-marcus',
-  name: 'Marcus',
-  email: 'marcus.w@example.com',
-
-  beautyProfile: {
-    skinType: 'dry',
-    concerns: ['hydration', 'dullness'],
-    allergies: [],
-    preferredBrands: [],
-    ageRange: '20-25',
-  },
-
-  orders: [
-    {
-      orderId: 'ORD-2026-0102',
-      orderDate: '2026-01-24',
-      channel: 'online',
-      status: 'completed',
-      totalAmount: 36.00,
-      lineItems: [
-        { productId: 'cleanser-gentle', productName: 'Cloud Cream Cleanser', quantity: 1, unitPrice: 36.00 },
-      ],
-    },
-  ],
-
-  chatSummaries: [
-    {
-      sessionDate: '2026-01-24',
-      summary: 'Marcus is brand new to skincare. A friend recommended this brand. He has dry, dull skin and wanted to start with the basics. Recommended the Cloud Cream Cleanser as a gentle first step. He asked what to add next.',
-      sentiment: 'positive',
-      topicsDiscussed: ['beginner skincare', 'dry skin', 'first purchase', 'next steps'],
-    },
-  ],
-
-  meaningfulEvents: [
-    {
-      eventType: 'intent',
-      description: 'Complete skincare beginner — wants to know what to add next after his cleanser',
-      capturedAt: '2026-01-24', // from chat #1
-      agentNote: 'Recommend moisturizer as next step, then SPF. Keep it simple — he\'s just starting out.',
-    },
-  ],
-
-  agentCapturedProfile: {
-    // From chat #1 — mentioned a friend recommended the brand
-    beautyPriority: {
-      value: 'Total beginner, friend recommended the brand, wants to keep it simple',
-      capturedAt: '2026-01-24',
-      capturedFrom: 'chat session 2026-01-24',
-      confidence: 'stated',
-    },
-    // Not yet captured: everything else — this is a brand new customer
-  },
-
-  browseSessions: [],
-  loyalty: null,
-
-  merkuryIdentity: {
-    merkuryId: 'MRK-MW-11201',
-    identityTier: 'known',
-    confidence: 0.88,
-    resolvedAt: new Date().toISOString(),
-  },
-
-  purchaseHistory: [],
-  savedPaymentMethods: [
-    { id: 'pm-6', type: 'card', last4: '5555', brand: 'visa', isDefault: true },
-  ],
-  shippingAddresses: [
-    { id: 'addr-6', name: 'Marcus Williams', line1: '55 W 46th St', city: 'New York', state: 'NY', postalCode: '10036', country: 'US', isDefault: true },
-  ],
-  recentActivity: [],
-  lifetimeValue: 36,
-};
-
-export const PERSONAS: PersonaMeta[] = [
-  {
-    id: 'sarah',
-    label: 'Sarah Chen',
-    subtitle: 'Known · Loyalty Gold',
-    traits: ['Sensitive skin', 'Recent Mumbai trip', '4 orders', 'Browsing retinol', '2,450 loyalty pts'],
-    profile: sarahChen,
-  },
-  {
-    id: 'james',
-    label: 'James Rodriguez',
-    subtitle: 'Known · No Loyalty',
-    traits: ['Oily skin', 'Anniversary gift search', '1 order', '2 chats', 'Not a loyalty member'],
-    profile: jamesRodriguez,
-  },
-  {
-    id: 'maya',
-    label: 'Maya Thompson',
-    subtitle: 'Known · Loyalty Platinum',
-    traits: ['Makeup enthusiast', '5 orders', 'Returned a serum', 'New highlights', '5,200 loyalty pts'],
-    profile: mayaThompson,
-  },
-  {
-    id: 'david',
-    label: 'David Kim',
-    subtitle: 'Known · Loyalty Silver',
-    traits: ['Combination skin', 'Routine builder', '2 orders', 'Methodical buyer', 'Browsing retinol'],
-    profile: davidKim,
-  },
-  {
-    id: 'marcus',
-    label: 'Marcus Williams',
-    subtitle: 'Known · Brand New',
-    traits: ['Dry skin', 'Skincare beginner', '1 order last week', 'No loyalty yet'],
-    profile: marcusWilliams,
-  },
-  {
-    id: 'aisha',
-    label: 'Aisha Patel',
-    subtitle: 'Merkury Appended Only',
-    traits: ['New to brand', 'Clean beauty interest', 'Wellness-focused', 'NYC', 'No purchase history'],
-    profile: aishaPatel,
-  },
-  {
-    id: 'priya',
-    label: 'Priya Sharma',
-    subtitle: 'Merkury Appended Only',
-    traits: ['New to brand', 'Anti-aging interest', 'Affluent suburban', 'Dallas', 'Has children'],
-    profile: priyaSharma,
-  },
-  {
-    id: 'anonymous',
-    label: 'Anonymous Visitor',
-    subtitle: 'Merkury: No Match',
-    traits: ['No identity resolved', 'No history', 'Discovery mode'],
-    profile: anonymousVisitor,
-  },
-];
-
-export function getPersonaById(id: string): PersonaMeta | undefined {
-  return PERSONAS.find((p) => p.id === id);
-}
-
-/** Minimal stubs for persona selector — enough to render cards before profile loads. */
+// ─── Persona Stubs (sidebar display) ────────────────────────────
 export interface PersonaStub {
   id: string;
-  merkuryId: string;
-  identityTier: 'known' | 'appended' | 'anonymous';
   defaultLabel: string;
   defaultSubtitle: string;
+  identityTier: 'known' | 'appended' | 'anonymous';
+  merkuryId?: string;
 }
 
 export const PERSONA_STUBS: PersonaStub[] = [
-  { id: 'sarah', merkuryId: 'MRK-SC-90210', identityTier: 'known', defaultLabel: 'Sarah Chen', defaultSubtitle: 'Merkury: Matched' },
-  { id: 'james', merkuryId: 'MRK-JR-78701', identityTier: 'known', defaultLabel: 'James Rodriguez', defaultSubtitle: 'Merkury: Matched' },
-  { id: 'maya', merkuryId: 'MRK-MT-30302', identityTier: 'known', defaultLabel: 'Maya Thompson', defaultSubtitle: 'Merkury: Matched' },
-  { id: 'david', merkuryId: 'MRK-DK-60614', identityTier: 'known', defaultLabel: 'David Kim', defaultSubtitle: 'Merkury: Matched' },
-  { id: 'marcus', merkuryId: 'MRK-MW-11201', identityTier: 'known', defaultLabel: 'Marcus Williams', defaultSubtitle: 'Merkury: Matched' },
-  { id: 'aisha', merkuryId: 'MRK-AP-10001', identityTier: 'appended', defaultLabel: 'Aisha Patel', defaultSubtitle: 'Merkury: Matched · Appended Only' },
-  { id: 'priya', merkuryId: 'MRK-PS-75201', identityTier: 'appended', defaultLabel: 'Priya Sharma', defaultSubtitle: 'Merkury: Matched · Appended Only' },
-  { id: 'anonymous', merkuryId: '', identityTier: 'anonymous', defaultLabel: 'Anonymous Visitor', defaultSubtitle: 'Merkury: No Match' },
+  {
+    id: 'maria-santos',
+    defaultLabel: 'Maria Santos',
+    defaultSubtitle: 'Known · Gold Account',
+    identityTier: 'known',
+    merkuryId: 'MRK-MS-001',
+  },
+  {
+    id: 'david-chen',
+    defaultLabel: 'David Chen',
+    defaultSubtitle: 'Known · Platinum Account',
+    identityTier: 'known',
+    merkuryId: 'MRK-DC-002',
+  },
+  {
+    id: 'sarah-johnson',
+    defaultLabel: 'Sarah Johnson',
+    defaultSubtitle: 'Known · Silver Account',
+    identityTier: 'known',
+    merkuryId: 'MRK-SJ-003',
+  },
+  {
+    id: 'mike-torres',
+    defaultLabel: 'Mike Torres',
+    defaultSubtitle: 'Known · No Tier',
+    identityTier: 'known',
+    merkuryId: 'MRK-MT-004',
+  },
+  {
+    id: 'jenny-park',
+    defaultLabel: 'Jenny Park',
+    defaultSubtitle: 'Known · No Tier',
+    identityTier: 'known',
+    merkuryId: 'MRK-JP-005',
+  },
+  {
+    id: 'pacific-energy-group',
+    defaultLabel: 'Pacific Energy Group',
+    defaultSubtitle: 'Appended Only',
+    identityTier: 'appended',
+    merkuryId: 'MRK-PEG-006',
+  },
+  {
+    id: 'heartland-power',
+    defaultLabel: 'Heartland Power Co-op',
+    defaultSubtitle: 'Appended Only',
+    identityTier: 'appended',
+    merkuryId: 'MRK-HPC-007',
+  },
+  {
+    id: 'anonymous',
+    defaultLabel: 'Anonymous Visitor',
+    defaultSubtitle: 'Merkury: No Match',
+    identityTier: 'anonymous',
+  },
 ];
+
+// ─── Full Persona Profiles ──────────────────────────────────────
+
+interface PersonaWithProfile {
+  stub: PersonaStub;
+  profile: CustomerProfile;
+}
+
+const PERSONAS: PersonaWithProfile[] = [
+  // ────────────────────────────────────────────────────────────────
+  // 1. Maria Santos — VP of Procurement, Horizon Wind Partners
+  // Known, Gold tier, wind farm developer
+  // ────────────────────────────────────────────────────────────────
+  {
+    stub: PERSONA_STUBS[0],
+    profile: {
+      id: 'persona-maria-santos',
+      name: 'Maria Santos',
+      email: 'maria.santos@horizonwind.com',
+      company: 'Horizon Wind Partners',
+      jobTitle: 'VP of Procurement',
+
+      beautyProfile: {
+        industry: 'Wind Energy',
+        primaryApplications: ['turbine blade assemblies', 'tower section fabrication', 'gearbox procurement'],
+        certifications: ['ISO 14001', 'IEC 61400'],
+        preferredProcessingMethods: ['composite layup', 'steel fabrication'],
+        preferredResins: ['Epoxy composite', 'Glass fiber reinforced'],
+        preferredBrands: ['Vestas', 'ZF Wind Power', 'Siemens Gamesa'],
+        volumeTier: 'high-volume',
+      },
+
+      orders: [
+        {
+          orderId: 'RPO-2025-1001',
+          orderDate: '2025-06-10',
+          channel: 'sales-rep',
+          lineItems: [
+            { productId: 'wt-blade-vestas', productName: 'Vestas V162 Turbine Blade Set (3-pack)', quantity: 12, unitPrice: 185000, unit: 'set' },
+          ],
+          totalAmount: 2220000,
+          status: 'completed',
+          poNumber: 'PO-HWP-2025-0301',
+        },
+        {
+          orderId: 'RPO-2025-1045',
+          orderDate: '2025-08-22',
+          channel: 'sales-rep',
+          lineItems: [
+            { productId: 'wt-tower-section-80m', productName: 'Steel Tower Section 80m (4-segment)', quantity: 8, unitPrice: 92000, unit: 'ea' },
+            { productId: 'wt-gearbox-zf', productName: 'ZF Wind Power Gearbox 3.0MW', quantity: 8, unitPrice: 74000, unit: 'ea' },
+          ],
+          totalAmount: 1328000,
+          status: 'completed',
+          poNumber: 'PO-HWP-2025-0344',
+        },
+        {
+          orderId: 'RPO-2025-1112',
+          orderDate: '2025-11-05',
+          channel: 'online',
+          lineItems: [
+            { productId: 'wt-blade-vestas', productName: 'Vestas V162 Turbine Blade Set (3-pack)', quantity: 6, unitPrice: 185000, unit: 'set' },
+          ],
+          totalAmount: 1110000,
+          status: 'shipped',
+          poNumber: 'PO-HWP-2025-0389',
+          trackingNumber: 'TRK-WND-554201',
+          estimatedDelivery: '2025-12-15',
+        },
+        {
+          orderId: 'RPO-2026-0023',
+          orderDate: '2026-01-08',
+          channel: 'sales-rep',
+          lineItems: [
+            { productId: 'wt-gearbox-zf', productName: 'ZF Wind Power Gearbox 3.0MW', quantity: 12, unitPrice: 74000, unit: 'ea' },
+          ],
+          totalAmount: 888000,
+          status: 'processing',
+          poNumber: 'PO-HWP-2026-0012',
+        },
+      ],
+      purchaseHistory: [],
+
+      chatSummaries: [
+        {
+          sessionDate: '2025-09-18',
+          summary: 'Maria discussed the Phase 2 expansion of the West Texas wind farm. Needs 24 additional turbine sets delivered Q1 2026. Asked about volume pricing tiers for blade sets and whether ZF gearboxes can be bundled. Mentioned concerns about supply chain delays from European manufacturers.',
+          sentiment: 'positive',
+          topicsDiscussed: ['Phase 2 expansion', 'volume pricing', 'blade supply chain', 'Q1 2026 delivery'],
+        },
+        {
+          sessionDate: '2025-12-02',
+          summary: 'Followed up on gearbox lead times for the January order. Maria flagged that two blades from the August shipment showed minor surface defects on trailing edge. Opened QA ticket. Also inquired about newer 4.5MW gearbox options for an upcoming offshore project bid.',
+          sentiment: 'neutral',
+          topicsDiscussed: ['gearbox lead times', 'blade surface defects', 'QA ticket', 'offshore project', '4.5MW gearbox'],
+        },
+      ],
+
+      meaningfulEvents: [
+        {
+          eventType: 'intent',
+          description: 'Phase 2 West Texas wind farm — 24 turbine sets needed Q1 2026',
+          capturedAt: '2025-09-18',
+          agentNote: 'Major expansion opportunity. Coordinate with Vestas rep on bulk pricing and logistics.',
+        },
+        {
+          eventType: 'concern',
+          description: 'Blade surface defects on trailing edge (lot RPO-1045)',
+          capturedAt: '2025-12-02',
+          agentNote: 'QA ticket QT-2025-WND-0088 opened. Escalate to Vestas quality team.',
+        },
+        {
+          eventType: 'preference',
+          description: 'Prefers Net 45 terms and quarterly delivery scheduling',
+          capturedAt: '2025-06-15',
+        },
+        {
+          eventType: 'intent',
+          description: 'Exploring offshore wind — evaluating 4.5MW+ gearbox solutions',
+          capturedAt: '2025-12-02',
+          agentNote: 'New market entry for Horizon Wind. Connect with offshore equipment specialist.',
+        },
+      ],
+
+      browseSessions: [
+        {
+          sessionDate: '2025-11-28',
+          categoriesBrowsed: ['wind-turbine-components', 'gearboxes', 'tower-sections'],
+          productsViewed: ['wt-blade-vestas', 'wt-gearbox-zf', 'wt-tower-section-80m'],
+          durationMinutes: 22,
+          device: 'desktop',
+        },
+      ],
+
+      loyalty: {
+        tier: 'gold',
+        pointsBalance: 18500,
+        lifetimePoints: 52000,
+        memberSince: '2023-01-20',
+        rewardsAvailable: [
+          { name: '3% off next order', pointsCost: 10000 },
+          { name: 'Priority logistics coordination', pointsCost: 8000 },
+        ],
+      },
+
+      agentCapturedProfile: {
+        annualVolume: { value: '~$8M/year in turbine components', capturedAt: '2025-09-18', capturedFrom: 'chat', confidence: 'stated' },
+        budgetCycle: { value: 'Annual capex planning in Q3 for next fiscal year', capturedAt: '2025-09-18', capturedFrom: 'chat', confidence: 'stated' },
+        primaryApplication: { value: 'Onshore wind farm development, exploring offshore', capturedAt: '2025-12-02', capturedFrom: 'chat', confidence: 'stated' },
+        qualityStandards: { value: 'ISO 14001, IEC 61400 compliance required for all components', capturedAt: '2025-06-10', capturedFrom: 'order-history', confidence: 'inferred' },
+        painPoints: { value: 'European supply chain delays; blade surface quality consistency', capturedAt: '2025-12-02', capturedFrom: 'chat', confidence: 'stated' },
+      },
+
+      merkuryIdentity: {
+        merkuryId: 'MRK-MS-001',
+        identityTier: 'known',
+        confidence: 0.97,
+        resolvedAt: new Date().toISOString(),
+      },
+
+      savedPaymentMethods: [
+        { id: 'pm-1', type: 'net-terms', isDefault: true, terms: 'Net 45' },
+      ],
+      shippingAddresses: [
+        {
+          id: 'addr-1',
+          name: 'Horizon Wind Partners - West Texas Project Site',
+          line1: '14200 Turbine Field Rd',
+          city: 'Sweetwater',
+          state: 'TX',
+          postalCode: '79556',
+          country: 'US',
+          isDefault: true,
+        },
+      ],
+    },
+  },
+
+  // ────────────────────────────────────────────────────────────────
+  // 2. David Chen — Project Director, SunPeak EPC Solutions
+  // Known, Platinum, large-scale solar EPC
+  // ────────────────────────────────────────────────────────────────
+  {
+    stub: PERSONA_STUBS[1],
+    profile: {
+      id: 'persona-david-chen',
+      name: 'David Chen',
+      email: 'david.chen@sunpeakepc.com',
+      company: 'SunPeak EPC Solutions',
+      jobTitle: 'Project Director',
+
+      beautyProfile: {
+        industry: 'Solar EPC',
+        primaryApplications: ['utility-scale solar installations', 'central inverter systems', 'single-axis tracker deployment'],
+        certifications: ['NABCEP', 'ISO 9001', 'UL 1741'],
+        preferredProcessingMethods: ['ground-mount installation', 'string design'],
+        preferredResins: ['Monocrystalline silicon', 'Bifacial modules'],
+        preferredBrands: ['JinkoSolar', 'SMA', 'Nextracker'],
+        volumeTier: 'enterprise',
+      },
+
+      orders: [
+        {
+          orderId: 'RPO-2025-2001',
+          orderDate: '2025-05-15',
+          channel: 'sales-rep',
+          lineItems: [
+            { productId: 'solar-panel-jinko', productName: 'JinkoSolar Tiger Neo 620W Bifacial Module', quantity: 5000, unitPrice: 142, unit: 'ea' },
+            { productId: 'solar-inverter-sma', productName: 'SMA Sunny Central 4600UP Central Inverter', quantity: 6, unitPrice: 58000, unit: 'ea' },
+          ],
+          totalAmount: 1058000,
+          status: 'completed',
+          poNumber: 'PO-SPK-2025-0501',
+        },
+        {
+          orderId: 'RPO-2025-2078',
+          orderDate: '2025-08-02',
+          channel: 'sales-rep',
+          lineItems: [
+            { productId: 'solar-panel-jinko', productName: 'JinkoSolar Tiger Neo 620W Bifacial Module', quantity: 8000, unitPrice: 138, unit: 'ea' },
+            { productId: 'solar-tracker-nextracker', productName: 'Nextracker NX Horizon Single-Axis Tracker', quantity: 8000, unitPrice: 85, unit: 'ea' },
+          ],
+          totalAmount: 1784000,
+          status: 'completed',
+          poNumber: 'PO-SPK-2025-0588',
+        },
+        {
+          orderId: 'RPO-2025-2190',
+          orderDate: '2025-10-18',
+          channel: 'online',
+          lineItems: [
+            { productId: 'solar-panel-jinko', productName: 'JinkoSolar Tiger Neo 620W Bifacial Module', quantity: 10000, unitPrice: 135, unit: 'ea' },
+            { productId: 'solar-inverter-sma', productName: 'SMA Sunny Central 4600UP Central Inverter', quantity: 10, unitPrice: 58000, unit: 'ea' },
+            { productId: 'solar-tracker-nextracker', productName: 'Nextracker NX Horizon Single-Axis Tracker', quantity: 10000, unitPrice: 85, unit: 'ea' },
+          ],
+          totalAmount: 2780000,
+          status: 'in-transit',
+          poNumber: 'PO-SPK-2025-0645',
+          trackingNumber: 'TRK-SOL-882301',
+          estimatedDelivery: '2025-12-20',
+        },
+        {
+          orderId: 'RPO-2026-0055',
+          orderDate: '2026-01-15',
+          channel: 'sales-rep',
+          lineItems: [
+            { productId: 'solar-panel-jinko', productName: 'JinkoSolar Tiger Neo 620W Bifacial Module', quantity: 12000, unitPrice: 132, unit: 'ea' },
+          ],
+          totalAmount: 1584000,
+          status: 'processing',
+          poNumber: 'PO-SPK-2026-0022',
+        },
+      ],
+      purchaseHistory: [],
+
+      chatSummaries: [
+        {
+          sessionDate: '2025-07-20',
+          summary: 'David discussed the 200MW Arizona project timeline. Needs phased delivery of panels and trackers across three construction stages. Wants to lock in pricing for the full project to avoid module price fluctuations. Asked about bankability letters for JinkoSolar modules to satisfy project finance requirements.',
+          sentiment: 'positive',
+          topicsDiscussed: ['200MW project', 'phased delivery', 'price lock', 'bankability letters', 'project finance'],
+        },
+        {
+          sessionDate: '2025-11-10',
+          summary: 'David raised concerns about tariff impacts on imported modules. Exploring domestic manufacturing alternatives. Also needs to add battery storage (BESS) to two existing projects for IRA tax credit optimization. Wants quotes on utility-scale battery systems.',
+          sentiment: 'neutral',
+          topicsDiscussed: ['tariff impact', 'domestic modules', 'BESS integration', 'IRA tax credits', 'battery storage'],
+        },
+      ],
+
+      meaningfulEvents: [
+        {
+          eventType: 'milestone',
+          description: 'SunPeak awarded 200MW Arizona utility-scale project',
+          capturedAt: '2025-07-20',
+        },
+        {
+          eventType: 'intent',
+          description: 'Adding BESS to two existing projects for IRA optimization',
+          capturedAt: '2025-11-10',
+          agentNote: 'Major upsell opportunity. Connect with energy storage division for BESS quotes.',
+        },
+        {
+          eventType: 'concern',
+          description: 'Tariff exposure on imported solar modules — evaluating domestic supply',
+          capturedAt: '2025-11-10',
+          agentNote: 'Present First Solar and Qcells domestic options at next meeting.',
+        },
+        {
+          eventType: 'preference',
+          description: 'Requires bankability documentation for all modules; Net 30 terms on all POs',
+          capturedAt: '2025-07-20',
+        },
+      ],
+
+      browseSessions: [
+        {
+          sessionDate: '2025-11-25',
+          categoriesBrowsed: ['solar-panels', 'battery-storage', 'inverters'],
+          productsViewed: ['solar-panel-jinko', 'bess-tesla-megapack', 'solar-inverter-sma'],
+          durationMinutes: 35,
+          device: 'desktop',
+        },
+      ],
+
+      loyalty: {
+        tier: 'platinum',
+        pointsBalance: 62000,
+        lifetimePoints: 180000,
+        memberSince: '2021-03-10',
+        rewardsAvailable: [
+          { name: 'Dedicated project coordinator', pointsCost: 0 },
+          { name: '5% off next module order', pointsCost: 25000 },
+          { name: 'Free expedited logistics (1 year)', pointsCost: 20000 },
+        ],
+      },
+
+      agentCapturedProfile: {
+        annualVolume: { value: '~$15M+/year in solar components', capturedAt: '2025-07-20', capturedFrom: 'chat', confidence: 'stated' },
+        budgetCycle: { value: 'Project-based procurement; Q4 pipeline planning', capturedAt: '2025-07-20', capturedFrom: 'chat', confidence: 'stated' },
+        primaryApplication: { value: 'Utility-scale solar EPC, expanding into BESS', capturedAt: '2025-11-10', capturedFrom: 'chat', confidence: 'stated' },
+        qualityStandards: { value: 'NABCEP certified installers, UL 1741 inverter compliance, bankability docs required', capturedAt: '2025-07-20', capturedFrom: 'chat', confidence: 'stated' },
+        painPoints: { value: 'Module tariff exposure; price volatility; bankability documentation turnaround', capturedAt: '2025-11-10', capturedFrom: 'chat', confidence: 'stated' },
+        accountManager: { value: 'Marcus Rivera (Strategic Accounts)', capturedAt: '2025-05-15', capturedFrom: 'crm', confidence: 'stated' },
+      },
+
+      merkuryIdentity: {
+        merkuryId: 'MRK-DC-002',
+        identityTier: 'known',
+        confidence: 0.99,
+        resolvedAt: new Date().toISOString(),
+      },
+
+      savedPaymentMethods: [
+        { id: 'pm-2', type: 'net-terms', isDefault: true, terms: 'Net 30' },
+      ],
+      shippingAddresses: [
+        {
+          id: 'addr-2',
+          name: 'SunPeak EPC - Arizona Project Staging',
+          line1: '8900 Solar Ranch Blvd',
+          city: 'Casa Grande',
+          state: 'AZ',
+          postalCode: '85122',
+          country: 'US',
+          isDefault: true,
+        },
+        {
+          id: 'addr-2b',
+          name: 'SunPeak EPC - HQ Warehouse',
+          line1: '2200 Commerce Park Dr',
+          city: 'San Jose',
+          state: 'CA',
+          postalCode: '95131',
+          country: 'US',
+          isDefault: false,
+        },
+      ],
+    },
+  },
+
+  // ────────────────────────────────────────────────────────────────
+  // 3. Sarah Johnson — Supply Chain Manager, GreenGrid Utility Corp
+  // Known, Silver tier, utility-scale project management
+  // ────────────────────────────────────────────────────────────────
+  {
+    stub: PERSONA_STUBS[2],
+    profile: {
+      id: 'persona-sarah-johnson',
+      name: 'Sarah Johnson',
+      email: 'sjohnson@greengridutility.com',
+      company: 'GreenGrid Utility Corp',
+      jobTitle: 'Supply Chain Manager',
+
+      beautyProfile: {
+        industry: 'Utility-Scale Renewables',
+        primaryApplications: ['combiner box procurement', 'step-up transformers', 'SCADA monitoring systems'],
+        certifications: ['IEEE 1547', 'UL 1741', 'NERC CIP'],
+        preferredProcessingMethods: ['utility interconnection', 'substation integration'],
+        preferredResins: [],
+        preferredBrands: ['Shoals Technologies', 'ABB', 'AlsoEnergy'],
+        volumeTier: 'high-volume',
+      },
+
+      orders: [
+        {
+          orderId: 'RPO-2025-3001',
+          orderDate: '2025-07-18',
+          channel: 'online',
+          lineItems: [
+            { productId: 'solar-combiner-shoals', productName: 'Shoals BLA 32-String Combiner Box', quantity: 120, unitPrice: 1850, unit: 'ea' },
+          ],
+          totalAmount: 222000,
+          status: 'completed',
+          poNumber: 'PO-GGU-2025-0180',
+        },
+        {
+          orderId: 'RPO-2025-3088',
+          orderDate: '2025-09-25',
+          channel: 'sales-rep',
+          lineItems: [
+            { productId: 'solar-transformer-abb', productName: 'ABB 34.5kV Step-Up Transformer 10MVA', quantity: 4, unitPrice: 125000, unit: 'ea' },
+            { productId: 'solar-monitoring-also', productName: 'AlsoEnergy PowerTrack SCADA System', quantity: 2, unitPrice: 45000, unit: 'ea' },
+          ],
+          totalAmount: 590000,
+          status: 'completed',
+          poNumber: 'PO-GGU-2025-0212',
+        },
+        {
+          orderId: 'RPO-2026-0030',
+          orderDate: '2026-01-10',
+          channel: 'online',
+          lineItems: [
+            { productId: 'solar-combiner-shoals', productName: 'Shoals BLA 32-String Combiner Box', quantity: 200, unitPrice: 1800, unit: 'ea' },
+            { productId: 'solar-monitoring-also', productName: 'AlsoEnergy PowerTrack SCADA System', quantity: 3, unitPrice: 45000, unit: 'ea' },
+          ],
+          totalAmount: 495000,
+          status: 'processing',
+          poNumber: 'PO-GGU-2026-0008',
+        },
+      ],
+      purchaseHistory: [],
+
+      chatSummaries: [
+        {
+          sessionDate: '2025-10-08',
+          summary: 'Sarah discussed the upcoming 150MW solar + storage project in Nevada. Needs combiner boxes with integrated rapid shutdown per NEC 2023. Asked about lead times on ABB transformers — their subcontractor is 6 weeks behind schedule. Also evaluating new monitoring platforms with AI-driven predictive maintenance.',
+          sentiment: 'neutral',
+          topicsDiscussed: ['150MW project', 'rapid shutdown compliance', 'transformer lead times', 'AI monitoring', 'predictive maintenance'],
+        },
+      ],
+
+      meaningfulEvents: [
+        {
+          eventType: 'intent',
+          description: '150MW solar + storage project in Nevada — procurement phase starting Q1 2026',
+          capturedAt: '2025-10-08',
+          agentNote: 'Large project pipeline. Pre-position combiner boxes and transformer quotes.',
+        },
+        {
+          eventType: 'concern',
+          description: 'Transformer lead times impacting project schedule — subcontractor behind',
+          capturedAt: '2025-10-08',
+          agentNote: 'Explore expedited transformer options or alternative suppliers.',
+        },
+        {
+          eventType: 'preference',
+          description: 'Requires NEC 2023 rapid shutdown compliance on all combiner boxes',
+          capturedAt: '2025-10-08',
+        },
+      ],
+
+      browseSessions: [
+        {
+          sessionDate: '2025-12-15',
+          categoriesBrowsed: ['combiner-boxes', 'transformers', 'monitoring-systems'],
+          productsViewed: ['solar-combiner-shoals', 'solar-transformer-abb', 'solar-monitoring-also'],
+          durationMinutes: 14,
+          device: 'desktop',
+        },
+      ],
+
+      loyalty: {
+        tier: 'silver',
+        pointsBalance: 6200,
+        lifetimePoints: 15800,
+        memberSince: '2024-01-15',
+        rewardsAvailable: [
+          { name: '3% off next order', pointsCost: 4000 },
+        ],
+      },
+
+      agentCapturedProfile: {
+        annualVolume: { value: '~$2M/year in BOS components', capturedAt: '2025-10-08', capturedFrom: 'chat', confidence: 'stated' },
+        primaryApplication: { value: 'Utility-scale solar BOS and monitoring', capturedAt: '2025-07-18', capturedFrom: 'order-history', confidence: 'inferred' },
+        qualityStandards: { value: 'IEEE 1547, UL 1741, NEC 2023 rapid shutdown', capturedAt: '2025-10-08', capturedFrom: 'chat', confidence: 'stated' },
+        painPoints: { value: 'Transformer lead times; subcontractor schedule slippage', capturedAt: '2025-10-08', capturedFrom: 'chat', confidence: 'stated' },
+      },
+
+      merkuryIdentity: {
+        merkuryId: 'MRK-SJ-003',
+        identityTier: 'known',
+        confidence: 0.95,
+        resolvedAt: new Date().toISOString(),
+      },
+
+      savedPaymentMethods: [
+        { id: 'pm-3', type: 'net-terms', isDefault: true, terms: 'Net 30' },
+      ],
+      shippingAddresses: [
+        {
+          id: 'addr-3',
+          name: 'GreenGrid Utility - Nevada Project Site',
+          line1: '6700 Desert Energy Way',
+          city: 'Pahrump',
+          state: 'NV',
+          postalCode: '89048',
+          country: 'US',
+          isDefault: true,
+        },
+      ],
+    },
+  },
+
+  // ────────────────────────────────────────────────────────────────
+  // 4. Mike Torres — Owner, Sunrise Solar Installations
+  // Known, no tier, residential/small commercial installer
+  // ────────────────────────────────────────────────────────────────
+  {
+    stub: PERSONA_STUBS[3],
+    profile: {
+      id: 'persona-mike-torres',
+      name: 'Mike Torres',
+      email: 'mike@sunrisesolar.com',
+      company: 'Sunrise Solar Installations',
+      jobTitle: 'Owner',
+
+      beautyProfile: {
+        industry: 'Residential Solar',
+        primaryApplications: ['rooftop solar installations', 'small commercial arrays', 'battery backup systems'],
+        certifications: ['NABCEP PV Installation Professional', 'C-46 Solar Contractor License'],
+        preferredProcessingMethods: ['rooftop mounting', 'flush mount racking'],
+        preferredResins: [],
+        preferredBrands: ['Enphase', 'Unirac', 'REC Solar'],
+        volumeTier: 'standard',
+      },
+
+      orders: [
+        {
+          orderId: 'RPO-2025-4001',
+          orderDate: '2025-09-05',
+          channel: 'online',
+          lineItems: [
+            { productId: 'solar-micro-enphase', productName: 'Enphase IQ8M Microinverter', quantity: 200, unitPrice: 142, unit: 'ea' },
+            { productId: 'solar-rack-unirac', productName: 'Unirac SolarMount Rail Kit (10ft)', quantity: 50, unitPrice: 68, unit: 'ea' },
+          ],
+          totalAmount: 31800,
+          status: 'completed',
+          poNumber: 'PO-SSI-2025-0045',
+        },
+        {
+          orderId: 'RPO-2025-4055',
+          orderDate: '2025-11-12',
+          channel: 'online',
+          lineItems: [
+            { productId: 'solar-micro-enphase', productName: 'Enphase IQ8M Microinverter', quantity: 300, unitPrice: 140, unit: 'ea' },
+            { productId: 'solar-rack-unirac', productName: 'Unirac SolarMount Rail Kit (10ft)', quantity: 80, unitPrice: 68, unit: 'ea' },
+          ],
+          totalAmount: 47440,
+          status: 'shipped',
+          poNumber: 'PO-SSI-2025-0067',
+          trackingNumber: 'TRK-SSI-334421',
+          estimatedDelivery: '2025-11-22',
+        },
+        {
+          orderId: 'RPO-2026-0040',
+          orderDate: '2026-01-20',
+          channel: 'online',
+          lineItems: [
+            { productId: 'solar-micro-enphase', productName: 'Enphase IQ8M Microinverter', quantity: 150, unitPrice: 140, unit: 'ea' },
+          ],
+          totalAmount: 21000,
+          status: 'processing',
+          poNumber: 'PO-SSI-2026-0003',
+        },
+      ],
+      purchaseHistory: [],
+
+      chatSummaries: [
+        {
+          sessionDate: '2025-10-15',
+          summary: 'Mike asked about bulk pricing for Enphase microinverters — he installs about 15-20 residential systems per month and wants to reduce per-unit cost. Also asked about Enphase IQ Battery 5P availability for whole-home backup installations. Mentioned he is growing into small commercial (50-100kW) and may need string inverters soon.',
+          sentiment: 'positive',
+          topicsDiscussed: ['bulk pricing', 'Enphase microinverters', 'battery storage', 'small commercial expansion', 'string inverters'],
+        },
+      ],
+
+      meaningfulEvents: [
+        {
+          eventType: 'intent',
+          description: 'Expanding into small commercial solar (50-100kW systems)',
+          capturedAt: '2025-10-15',
+          agentNote: 'Growth opportunity. Present SolarEdge or SMA string inverter options for commercial.',
+        },
+        {
+          eventType: 'preference',
+          description: 'Loyal Enphase user — values monitoring platform and installer support',
+          capturedAt: '2025-09-05',
+        },
+        {
+          eventType: 'intent',
+          description: 'Looking to add battery storage (Enphase IQ Battery 5P) to service offering',
+          capturedAt: '2025-10-15',
+          agentNote: 'Send pricing and installer certification info for Enphase battery products.',
+        },
+      ],
+
+      browseSessions: [
+        {
+          sessionDate: '2025-11-08',
+          categoriesBrowsed: ['microinverters', 'racking-mounting', 'battery-storage'],
+          productsViewed: ['solar-micro-enphase', 'solar-rack-unirac', 'battery-enphase-5p'],
+          durationMinutes: 20,
+          device: 'mobile',
+        },
+      ],
+
+      loyalty: null,
+
+      agentCapturedProfile: {
+        annualVolume: { value: '~$400K-$600K/year in residential components', capturedAt: '2025-10-15', capturedFrom: 'chat', confidence: 'stated' },
+        primaryApplication: { value: 'Residential rooftop solar, expanding to small commercial', capturedAt: '2025-10-15', capturedFrom: 'chat', confidence: 'stated' },
+        painPoints: { value: 'Per-unit cost on microinverters; needs volume discount tier', capturedAt: '2025-10-15', capturedFrom: 'chat', confidence: 'stated' },
+      },
+
+      merkuryIdentity: {
+        merkuryId: 'MRK-MT-004',
+        identityTier: 'known',
+        confidence: 0.92,
+        resolvedAt: new Date().toISOString(),
+      },
+
+      savedPaymentMethods: [
+        { id: 'pm-4', type: 'card', brand: 'visa', last4: '7823', isDefault: true },
+      ],
+      shippingAddresses: [
+        {
+          id: 'addr-4',
+          name: 'Sunrise Solar Installations - Warehouse',
+          line1: '1440 S Main St, Unit B',
+          city: 'Phoenix',
+          state: 'AZ',
+          postalCode: '85034',
+          country: 'US',
+          isDefault: true,
+        },
+      ],
+    },
+  },
+
+  // ────────────────────────────────────────────────────────────────
+  // 5. Jenny Park — Technical Operations Manager, WindTech O&M
+  // Known, no tier, wind O&M services
+  // ────────────────────────────────────────────────────────────────
+  {
+    stub: PERSONA_STUBS[4],
+    profile: {
+      id: 'persona-jenny-park',
+      name: 'Jenny Park',
+      email: 'jenny.park@windtechoms.com',
+      company: 'WindTech O&M Services',
+      jobTitle: 'Technical Operations Manager',
+
+      beautyProfile: {
+        industry: 'Wind O&M',
+        primaryApplications: ['gearbox overhaul', 'blade repair', 'drivetrain maintenance'],
+        certifications: ['GWO Basic Safety Training', 'ISO 45001'],
+        preferredProcessingMethods: ['field service', 'preventive maintenance'],
+        preferredResins: [],
+        preferredBrands: ['ZF Wind Power', 'SKF', 'Castrol'],
+        volumeTier: 'standard',
+      },
+
+      orders: [
+        {
+          orderId: 'RPO-2025-5001',
+          orderDate: '2025-08-14',
+          channel: 'online',
+          lineItems: [
+            { productId: 'wt-gearbox-bearing-skf', productName: 'SKF Spherical Roller Bearing 240/630', quantity: 12, unitPrice: 4200, unit: 'ea' },
+            { productId: 'wt-gearbox-oil-castrol', productName: 'Castrol Optigear Synthetic CT 320 (55gal)', quantity: 8, unitPrice: 890, unit: 'drum' },
+          ],
+          totalAmount: 57520,
+          status: 'completed',
+          poNumber: 'PO-WTO-2025-0088',
+        },
+        {
+          orderId: 'RPO-2025-5044',
+          orderDate: '2025-10-28',
+          channel: 'phone',
+          lineItems: [
+            { productId: 'wt-gearbox-repair-kit', productName: 'ZF Gearbox Repair Kit 2.5MW (Seal + Bearing Set)', quantity: 6, unitPrice: 8500, unit: 'kit' },
+          ],
+          totalAmount: 51000,
+          status: 'completed',
+          poNumber: 'PO-WTO-2025-0109',
+        },
+        {
+          orderId: 'RPO-2026-0015',
+          orderDate: '2026-01-05',
+          channel: 'online',
+          lineItems: [
+            { productId: 'wt-gearbox-bearing-skf', productName: 'SKF Spherical Roller Bearing 240/630', quantity: 20, unitPrice: 4200, unit: 'ea' },
+            { productId: 'wt-gearbox-oil-castrol', productName: 'Castrol Optigear Synthetic CT 320 (55gal)', quantity: 12, unitPrice: 890, unit: 'drum' },
+          ],
+          totalAmount: 94680,
+          status: 'processing',
+          poNumber: 'PO-WTO-2026-0004',
+        },
+      ],
+      purchaseHistory: [],
+
+      chatSummaries: [
+        {
+          sessionDate: '2025-09-20',
+          summary: 'Jenny discussed scheduling preventive maintenance for a 50-turbine wind farm in Oklahoma. Needs gearbox bearing replacements in bulk — several units showing vibration anomalies. Asked about expedited shipping for critical parts and whether we offer condition monitoring sensor packages.',
+          sentiment: 'neutral',
+          topicsDiscussed: ['preventive maintenance', 'bulk bearings', 'vibration anomalies', 'expedited shipping', 'condition monitoring'],
+        },
+        {
+          sessionDate: '2025-12-10',
+          summary: 'Jenny reported that 3 gearboxes at the Oklahoma site failed earlier than predicted. Needs emergency repair kits shipped overnight. Also exploring a blanket PO for quarterly consumables (oil, filters, seals) across all their service contracts.',
+          sentiment: 'negative',
+          topicsDiscussed: ['gearbox failures', 'emergency parts', 'overnight shipping', 'blanket PO', 'quarterly consumables'],
+        },
+      ],
+
+      meaningfulEvents: [
+        {
+          eventType: 'concern',
+          description: 'Premature gearbox failures at Oklahoma wind farm — 3 units down',
+          capturedAt: '2025-12-10',
+          agentNote: 'Urgent. Expedite ZF repair kits. Flag to engineering for root cause analysis.',
+        },
+        {
+          eventType: 'intent',
+          description: 'Setting up blanket PO for quarterly O&M consumables across all contracts',
+          capturedAt: '2025-12-10',
+          agentNote: 'Route to inside sales for blanket PO setup. Estimate ~$200K/year in consumables.',
+        },
+        {
+          eventType: 'preference',
+          description: 'Needs reliable overnight shipping for emergency parts',
+          capturedAt: '2025-09-20',
+        },
+      ],
+
+      browseSessions: [
+        {
+          sessionDate: '2025-12-08',
+          categoriesBrowsed: ['gearbox-components', 'lubricants', 'condition-monitoring'],
+          productsViewed: ['wt-gearbox-bearing-skf', 'wt-gearbox-repair-kit', 'wt-gearbox-oil-castrol'],
+          durationMinutes: 16,
+          device: 'desktop',
+        },
+      ],
+
+      loyalty: null,
+
+      agentCapturedProfile: {
+        annualVolume: { value: '~$200K-$400K/year in O&M parts and consumables', capturedAt: '2025-12-10', capturedFrom: 'chat', confidence: 'stated' },
+        primaryApplication: { value: 'Wind turbine O&M — gearbox, drivetrain, blade services', capturedAt: '2025-09-20', capturedFrom: 'chat', confidence: 'stated' },
+        painPoints: { value: 'Premature gearbox failures; emergency parts availability; overnight shipping reliability', capturedAt: '2025-12-10', capturedFrom: 'chat', confidence: 'stated' },
+      },
+
+      merkuryIdentity: {
+        merkuryId: 'MRK-JP-005',
+        identityTier: 'known',
+        confidence: 0.90,
+        resolvedAt: new Date().toISOString(),
+      },
+
+      savedPaymentMethods: [
+        { id: 'pm-5', type: 'net-terms', isDefault: true, terms: 'Net 30' },
+      ],
+      shippingAddresses: [
+        {
+          id: 'addr-5',
+          name: 'WindTech O&M - Oklahoma Field Office',
+          line1: '3200 Wind Farm Service Rd',
+          city: 'Woodward',
+          state: 'OK',
+          postalCode: '73801',
+          country: 'US',
+          isDefault: true,
+        },
+      ],
+    },
+  },
+
+  // ────────────────────────────────────────────────────────────────
+  // 6. Pacific Energy Group — Appended Only (3P data)
+  // Identified via Merkury B2B append
+  // ────────────────────────────────────────────────────────────────
+  {
+    stub: PERSONA_STUBS[5],
+    profile: {
+      id: 'persona-pacific-energy-group',
+      name: 'Guest',
+      email: '',
+      company: 'Pacific Energy Group',
+
+      beautyProfile: {} as CustomerProfile['beautyProfile'],
+
+      orders: [],
+      purchaseHistory: [],
+      chatSummaries: [],
+      meaningfulEvents: [],
+      browseSessions: [],
+      loyalty: null,
+
+      merkuryIdentity: {
+        merkuryId: 'MRK-PEG-006',
+        identityTier: 'appended',
+        confidence: 0.74,
+        resolvedAt: new Date().toISOString(),
+      },
+
+      appendedProfile: {
+        companySize: '500-1000 employees',
+        industryVertical: 'Renewable Energy Development',
+        annualRevenue: '$200M-$500M',
+        geoRegion: 'West US',
+        interests: ['utility-scale solar', 'battery storage', 'PPA structuring'],
+        lifestyleSignals: ['large-scale developer', 'IPP', 'grid-scale projects'],
+      },
+
+      savedPaymentMethods: [],
+      shippingAddresses: [],
+    },
+  },
+
+  // ────────────────────────────────────────────────────────────────
+  // 7. Heartland Power Co-op — Appended Only (3P data)
+  // Identified via Merkury B2B append
+  // ────────────────────────────────────────────────────────────────
+  {
+    stub: PERSONA_STUBS[6],
+    profile: {
+      id: 'persona-heartland-power',
+      name: 'Guest',
+      email: '',
+      company: 'Heartland Power Co-op',
+
+      beautyProfile: {} as CustomerProfile['beautyProfile'],
+
+      orders: [],
+      purchaseHistory: [],
+      chatSummaries: [],
+      meaningfulEvents: [],
+      browseSessions: [],
+      loyalty: null,
+
+      merkuryIdentity: {
+        merkuryId: 'MRK-HPC-007',
+        identityTier: 'appended',
+        confidence: 0.69,
+        resolvedAt: new Date().toISOString(),
+      },
+
+      appendedProfile: {
+        companySize: '100-250 employees',
+        industryVertical: 'Rural Electric Cooperative',
+        annualRevenue: '$50M-$100M',
+        geoRegion: 'Midwest US',
+        interests: ['community solar', 'wind power', 'grid modernization'],
+        lifestyleSignals: ['member-owned cooperative', 'rural electrification', 'clean energy transition'],
+      },
+
+      savedPaymentMethods: [],
+      shippingAddresses: [],
+    },
+  },
+];
+
+// ─── Accessor helpers ───────────────────────────────────────────
+export function getPersonaById(id: string): PersonaWithProfile | undefined {
+  return PERSONAS.find((p) => p.stub.id === id);
+}
+
+export function getAllPersonas(): PersonaWithProfile[] {
+  return PERSONAS;
+}

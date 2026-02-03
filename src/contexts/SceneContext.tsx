@@ -22,22 +22,17 @@ function buildBgOptions(sc?: UIDirective['payload']['sceneContext']): Background
   };
 }
 
-/** Infer a scene setting from product categories when the agent doesn't provide one. */
+/** Infer a scene setting from product categories for B2B materials. */
 function inferSettingFromProducts(products: Product[]): SceneSetting {
   const categories = products.map((p) => (p.category || '').toLowerCase());
-  const names = products.map((p) => (p.name || '').toLowerCase());
-  const all = [...categories, ...names].join(' ');
+  const all = categories.join(' ');
 
-  if (/foundation|lipstick|blush|mascara|makeup|palette|vanity/i.test(all)) return 'vanity';
-  if (/fragrance|perfume|cologne|eau de|scent|parfum/i.test(all)) return 'bedroom';
-  if (/shampoo|conditioner|hair/i.test(all)) return 'bathroom';
-  if (/gym|workout|active|post.workout/i.test(all)) return 'gym';
-  if (/office|work|minimal|desk/i.test(all)) return 'office';
-  if (/travel|luggage|portable|mini|kit|on.the.go/i.test(all)) return 'travel';
-  if (/sun|spf|outdoor|beach|hiking|uv/i.test(all)) return 'outdoor';
-  if (/moisturiz|serum|cleanser|skincare|face|eye.cream|toner|mask|bathroom|sink/i.test(all)) return 'bathroom';
-  if (/lifestyle/i.test(all)) return 'lifestyle';
-  return 'bathroom'; // default for beauty products
+  if (/purge|additive|masterbatch/i.test(all)) return 'production-floor';
+  if (/sustainable|recycled|bio/i.test(all)) return 'lab';
+  if (/high-performance|peek|engineered/i.test(all)) return 'cleanroom';
+  if (/commodity|hdpe|pp\b|polypropylene/i.test(all)) return 'warehouse';
+  if (/elastomer|tpu|tpv/i.test(all)) return 'factory';
+  return 'neutral'; // default for B2B
 }
 
 export type SceneSnapshot = SceneState;
@@ -61,7 +56,7 @@ const initialScene: SceneState = {
   setting: 'neutral',
   background: {
     type: 'gradient',
-    value: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+    value: 'linear-gradient(135deg, #1a1625 0%, #2d2240 50%, #1e1a2e 100%)',
   },
   chatPosition: 'center',
   products: [],
@@ -85,12 +80,12 @@ type SceneAction =
 function sceneReducer(state: SceneState, action: SceneAction): SceneState {
   switch (action.type) {
     case 'TRANSITION_LAYOUT': {
-      const chatPosition = action.layout === 'conversation-centered' 
-        ? 'center' 
-        : action.layout === 'checkout' 
-          ? 'minimized' 
+      const chatPosition = action.layout === 'conversation-centered'
+        ? 'center'
+        : action.layout === 'checkout'
+          ? 'minimized'
           : 'bottom';
-      
+
       return {
         ...state,
         layout: action.layout,
@@ -153,26 +148,19 @@ export const SceneProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           dispatch({ type: 'TRANSITION_LAYOUT', layout, products: payload.products });
         }
 
-        // Use explicit sceneContext setting if provided. Otherwise, keep the current
-        // setting when we already have a background image — only infer from products
-        // if we're on the initial gradient (no image loaded yet).
         const curBg = sceneRef.current;
         const hasExistingImage = curBg.background.type === 'image' && curBg.background.value;
         const agentExplicitSetting = payload.sceneContext?.setting;
         const setting: SceneSetting = agentExplicitSetting
           || (hasExistingImage ? curBg.setting : inferSettingFromProducts(payload.products || []));
-        const shouldGenerate = payload.sceneContext?.generateBackground !== false;
+        const shouldGenerate = payload.sceneContext?.generateBackground === true; // B2B: opt-in only
 
-        // Auto-generate a backgroundPrompt if the agent didn't provide one
-        // but respect the agent's generateBackground flag
         const sceneCtx: UIDirective['payload']['sceneContext'] = payload.sceneContext || { setting };
         if (!sceneCtx.backgroundPrompt && payload.products?.length) {
-          const names = payload.products.slice(0, 3).map(p => p.name).join(', ');
-          sceneCtx.backgroundPrompt = `A luxurious ${setting} setting perfect for showcasing beauty products like ${names}. Elegant, soft lighting, high-end atmosphere.`;
+          sceneCtx.backgroundPrompt = `A clean, professional ${setting} environment for industrial materials.`;
           sceneCtx.setting = setting;
         }
 
-        // Skip regeneration if we already have (or are generating) an image for the same setting
         const cur = sceneRef.current;
         const alreadyHasImage = cur.setting === setting && (
           (cur.background.type === 'image' && cur.background.value) ||
@@ -200,7 +188,7 @@ export const SceneProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               type: 'SET_BACKGROUND',
               background: {
                 type: 'gradient',
-                value: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+                value: 'linear-gradient(135deg, #1a1625 0%, #2d2240 50%, #1e1a2e 100%)',
               },
             });
           }
@@ -209,24 +197,21 @@ export const SceneProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
 
       case 'CHANGE_SCENE': {
-        // Keep current setting when agent doesn't explicitly provide one and we have a background
         const curForChange = sceneRef.current;
         const hasImageForChange = curForChange.background.type === 'image' && curForChange.background.value;
         const agentChangeSetting = payload.sceneContext?.setting;
         const sceneSetting: SceneSetting = agentChangeSetting
           || (hasImageForChange ? curForChange.setting : inferSettingFromProducts(payload.products || []));
-        const shouldGen = payload.sceneContext?.generateBackground !== false;
+        const shouldGen = payload.sceneContext?.generateBackground === true; // B2B: opt-in only
 
-        // Auto-generate a backgroundPrompt if not provided
         const changeCtx: UIDirective['payload']['sceneContext'] = payload.sceneContext || { setting: sceneSetting };
         const agentProvidedPrompt = !!payload.sceneContext?.backgroundPrompt;
         if (!changeCtx.backgroundPrompt) {
-          changeCtx.backgroundPrompt = `A luxurious ${sceneSetting} setting with elegant, soft lighting and a high-end beauty atmosphere.`;
+          changeCtx.backgroundPrompt = `A professional ${sceneSetting} environment.`;
           changeCtx.setting = sceneSetting;
-          changeCtx.generateBackground = true;
+          changeCtx.generateBackground = false; // B2B: don't auto-generate
         }
 
-        // Skip regeneration if same setting + already have (or generating) image + agent didn't request a specific prompt
         const curScene = sceneRef.current;
         const alreadyHasSceneImage = curScene.setting === sceneSetting && !agentProvidedPrompt && (
           (curScene.background.type === 'image' && curScene.background.value) ||
@@ -254,7 +239,7 @@ export const SceneProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               type: 'SET_BACKGROUND',
               background: {
                 type: 'gradient',
-                value: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+                value: 'linear-gradient(135deg, #1a1625 0%, #2d2240 50%, #1e1a2e 100%)',
               },
             });
           }
@@ -271,18 +256,17 @@ export const SceneProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         break;
 
       case 'WELCOME_SCENE': {
-        // Show welcome overlay
         dispatch({
           type: 'SHOW_WELCOME',
           welcomeData: {
-            message: payload.welcomeMessage || 'Welcome!',
+            message: payload.welcomeMessage || 'Welcome to Formerra Plus.',
             subtext: payload.welcomeSubtext,
           },
         });
 
-        // Generate background for welcome scene
         const welcomeSetting: SceneSetting = payload.sceneContext?.setting || 'neutral';
-        const shouldGenWelcome = payload.sceneContext?.generateBackground !== false;
+        // B2B: Only generate if explicitly requested
+        const shouldGenWelcome = payload.sceneContext?.generateBackground === true;
         dispatch({ type: 'SET_SETTING', setting: welcomeSetting });
 
         if (shouldGenWelcome) {
@@ -300,15 +284,15 @@ export const SceneProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           } catch (error) {
             console.error('Welcome background generation failed:', error);
           }
-        } else {
-          // Use static default background (e.g. for unknown/appended customers)
-          dispatch({
-            type: 'SET_BACKGROUND',
-            background: { type: 'image', value: '/assets/backgrounds/default.png' },
-          });
         }
+        // B2B: Use gradient by default — no image generation for welcome
         break;
       }
+
+      case 'SHOW_ORDER_STATUS':
+      case 'SHOW_ACCOUNT_SUMMARY':
+        // These are data-display actions — no scene change needed
+        break;
 
       case 'RESET_SCENE':
         dispatch({ type: 'RESET' });
