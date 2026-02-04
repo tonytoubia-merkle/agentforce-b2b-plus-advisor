@@ -327,7 +327,7 @@ export const ConversationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     'Request a quote',
   ]);
   const { processUIDirective, resetScene, getSceneSnapshot, restoreSceneSnapshot } = useScene();
-  const { customer, selectedPersonaId, identifyByEmail, _isRefreshRef, _onSessionReset } = useCustomer();
+  const { customer, selectedPersonaId, isResolving, identifyByEmail, _isRefreshRef, _onSessionReset } = useCustomer();
   const { showCaptures } = useActivityToast();
   const messagesRef = useRef<AgentMessage[]>([]);
   const suggestedActionsRef = useRef<string[]>([]);
@@ -375,6 +375,12 @@ export const ConversationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       return;
     }
 
+    // Wait for identity resolution to complete before acting on persona changes
+    if (isResolving) {
+      console.log('[session] Identity resolution in progress — waiting...');
+      return; // Don't clear/reset until resolution completes
+    }
+
     const prevPersonaId = prevPersonaIdRef.current;
     prevPersonaIdRef.current = selectedPersonaId;
 
@@ -396,7 +402,23 @@ export const ConversationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       console.log('[session] Restoring cached session for', selectedPersonaId, `(${cached.messages.length} messages)`);
       setMessages(cached.messages);
       setSuggestedActions(cached.suggestedActions);
-      restoreSceneSnapshot(cached.sceneSnapshot);
+
+      // Check if the cached scene has an incomplete background (was still loading when saved)
+      const sceneBg = cached.sceneSnapshot.background;
+      const isIncompleteBackground =
+        (sceneBg.type === 'generative' && (!sceneBg.value || sceneBg.isLoading)) ||
+        (sceneBg.type === 'image' && !sceneBg.value);
+
+      if (isIncompleteBackground) {
+        // Restore scene but use fallback background instead of incomplete one
+        console.log('[session] Cached scene had incomplete background, using fallback');
+        restoreSceneSnapshot({
+          ...cached.sceneSnapshot,
+          background: { type: 'image', value: '/assets/backgrounds/default.png' },
+        });
+      } else {
+        restoreSceneSnapshot(cached.sceneSnapshot);
+      }
       setIsLoadingWelcome(false);
 
       if (useMockData && cached.mockSnapshot) {
@@ -491,7 +513,7 @@ export const ConversationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [customer, selectedPersonaId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [customer, selectedPersonaId, isResolving]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const sendMessage = useCallback(async (content: string) => {
     const userMessage: AgentMessage = {
@@ -515,8 +537,13 @@ export const ConversationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
 
       // Handle IDENTIFY_CUSTOMER directive
-      if (response.uiDirective?.action === 'IDENTIFY_CUSTOMER' && response.uiDirective.payload?.customerEmail) {
-        await identifyByEmail(response.uiDirective.payload.customerEmail);
+      if (response.uiDirective?.action === 'IDENTIFY_CUSTOMER') {
+        if (response.uiDirective.payload?.customerEmail) {
+          await identifyByEmail(response.uiDirective.payload.customerEmail);
+        } else {
+          // Fallback: directive processed but no email provided
+          console.log('[identity] IDENTIFY_CUSTOMER directive received without email — awaiting user input');
+        }
       }
 
       const agentMessage: AgentMessage = {

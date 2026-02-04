@@ -60,6 +60,8 @@ export interface BackgroundOptions {
   mood?: string;
   customerContext?: string;
   sceneType?: string;
+  /** If set, use this existing background instead of generating a new one. */
+  existingBackground?: string;
 }
 
 export function useGenerativeBackground() {
@@ -67,6 +69,12 @@ export function useGenerativeBackground() {
 
   const generateBackground = useCallback(
     async (setting: SceneSetting, products: Product[], options?: BackgroundOptions): Promise<string> => {
+      // 0. Preserve existing background if provided (avoids regeneration on product updates)
+      if (options?.existingBackground) {
+        console.log('[bg] Preserving existing background for', setting);
+        return options.existingBackground;
+      }
+
       const enabled = import.meta.env.VITE_ENABLE_GENERATIVE_BACKGROUNDS === 'true';
 
       const prompt = options?.backgroundPrompt || options?.editPrompt;

@@ -13,7 +13,7 @@
         <locationX>50</locationX>
         <locationY>0</locationY>
         <connector>
-            <targetReference>Update_Contact_Record</targetReference>
+            <targetReference>Check_ContactId</targetReference>
         </connector>
     </start>
     <status>Active</status>
@@ -28,36 +28,36 @@
         <description>The Salesforce Contact record ID to update</description>
     </variables>
     <variables>
-        <name>skinType</name>
+        <name>industry</name>
         <dataType>String</dataType>
         <isCollection>false</isCollection>
         <isInput>true</isInput>
         <isOutput>false</isOutput>
-        <description>Skin type value: Normal, Dry, Oily, Combination, Sensitive, Acne-Prone, or Mature</description>
+        <description>Industry vertical (e.g. Utility Scale Solar, Wind Farm Developer)</description>
     </variables>
     <variables>
-        <name>skinConcerns</name>
+        <name>primaryApplications</name>
         <dataType>String</dataType>
         <isCollection>false</isCollection>
         <isInput>true</isInput>
         <isOutput>false</isOutput>
-        <description>Semicolon-separated skin concerns (e.g. acne;dryness;redness)</description>
+        <description>Semicolon-separated primary applications (e.g. utility-scale solar;residential)</description>
     </variables>
     <variables>
-        <name>beautyPriority</name>
+        <name>certifications</name>
         <dataType>String</dataType>
         <isCollection>false</isCollection>
         <isInput>true</isInput>
         <isOutput>false</isOutput>
-        <description>Primary beauty priority or goal</description>
+        <description>Semicolon-separated required certifications (e.g. IEC;UL;MCS)</description>
     </variables>
     <variables>
-        <name>allergies</name>
+        <name>annualVolume</name>
         <dataType>String</dataType>
         <isCollection>false</isCollection>
         <isInput>true</isInput>
         <isOutput>false</isOutput>
-        <description>Semicolon-separated known allergies or sensitivities</description>
+        <description>Annual procurement volume tier</description>
     </variables>
     <variables>
         <name>preferredBrands</name>
@@ -65,39 +65,39 @@
         <isCollection>false</isCollection>
         <isInput>true</isInput>
         <isOutput>false</isOutput>
-        <description>Semicolon-separated preferred brands</description>
+        <description>Semicolon-separated preferred equipment brands</description>
     </variables>
     <variables>
-        <name>sustainabilityPreference</name>
+        <name>sustainabilityGoals</name>
         <dataType>String</dataType>
         <isCollection>false</isCollection>
         <isInput>true</isInput>
         <isOutput>false</isOutput>
-        <description>Sustainability preference (e.g. vegan, cruelty-free, clean beauty)</description>
+        <description>Sustainability goals or requirements</description>
     </variables>
     <variables>
-        <name>climateContext</name>
+        <name>projectPipeline</name>
         <dataType>String</dataType>
         <isCollection>false</isCollection>
         <isInput>true</isInput>
         <isOutput>false</isOutput>
-        <description>Climate or environment context (e.g. humid tropical, dry desert)</description>
+        <description>Project pipeline or upcoming needs</description>
     </variables>
     <variables>
-        <name>priceRange</name>
+        <name>gridInterconnection</name>
         <dataType>String</dataType>
         <isCollection>false</isCollection>
         <isInput>true</isInput>
         <isOutput>false</isOutput>
-        <description>Preferred price range: budget, mid-range, or luxury</description>
+        <description>Grid interconnection requirements or status</description>
     </variables>
     <variables>
-        <name>birthday</name>
-        <dataType>Date</dataType>
+        <name>siteConditions</name>
+        <dataType>String</dataType>
         <isCollection>false</isCollection>
         <isInput>true</isInput>
         <isOutput>false</isOutput>
-        <description>Customer birthday as a Date value (YYYY-MM-DD)</description>
+        <description>Site conditions (e.g. high wind zone, coastal, desert)</description>
     </variables>
 
     <!-- Output Variables -->
@@ -125,12 +125,55 @@
         <description>Comma-separated list of field names that were updated</description>
     </variables>
 
+    <!-- Decision: Check if contactId is provided (guard for anonymous users) -->
+    <decisions>
+        <name>Check_ContactId</name>
+        <label>Check ContactId</label>
+        <locationX>176</locationX>
+        <locationY>80</locationY>
+        <defaultConnector>
+            <targetReference>Update_Contact_Record</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Has ContactId</defaultConnectorLabel>
+        <rules>
+            <name>No_ContactId</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>contactId</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue><booleanValue>true</booleanValue></rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Set_Skipped</targetReference>
+            </connector>
+            <label>No ContactId</label>
+        </rules>
+    </decisions>
+
+    <!-- Skip Assignment for anonymous users -->
+    <assignments>
+        <name>Set_Skipped</name>
+        <label>Set Skipped</label>
+        <locationX>50</locationX>
+        <locationY>200</locationY>
+        <assignmentItems>
+            <assignToReference>outputSuccess</assignToReference>
+            <operator>Assign</operator>
+            <value><booleanValue>false</booleanValue></value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>outputError</assignToReference>
+            <operator>Assign</operator>
+            <value><stringValue>Skipped: No contactId provided (anonymous user)</stringValue></value>
+        </assignmentItems>
+    </assignments>
+
     <!-- Update Record -->
     <recordUpdates>
         <name>Update_Contact_Record</name>
         <label>Update Contact Record</label>
-        <locationX>176</locationX>
-        <locationY>158</locationY>
+        <locationX>300</locationX>
+        <locationY>200</locationY>
         <connector>
             <targetReference>Set_Success</targetReference>
         </connector>
@@ -144,40 +187,40 @@
             <value><elementReference>contactId</elementReference></value>
         </filters>
         <inputAssignments>
-            <field>Skin_Type__c</field>
-            <value><elementReference>skinType</elementReference></value>
+            <field>Industry__c</field>
+            <value><elementReference>industry</elementReference></value>
         </inputAssignments>
         <inputAssignments>
-            <field>Skin_Concerns__c</field>
-            <value><elementReference>skinConcerns</elementReference></value>
+            <field>Primary_Applications__c</field>
+            <value><elementReference>primaryApplications</elementReference></value>
         </inputAssignments>
         <inputAssignments>
-            <field>Beauty_Priority__c</field>
-            <value><elementReference>beautyPriority</elementReference></value>
+            <field>Certifications__c</field>
+            <value><elementReference>certifications</elementReference></value>
         </inputAssignments>
         <inputAssignments>
-            <field>Allergies__c</field>
-            <value><elementReference>allergies</elementReference></value>
+            <field>Annual_Volume__c</field>
+            <value><elementReference>annualVolume</elementReference></value>
         </inputAssignments>
         <inputAssignments>
             <field>Preferred_Brands__c</field>
             <value><elementReference>preferredBrands</elementReference></value>
         </inputAssignments>
         <inputAssignments>
-            <field>Sustainability_Preference__c</field>
-            <value><elementReference>sustainabilityPreference</elementReference></value>
+            <field>Sustainability_Goals__c</field>
+            <value><elementReference>sustainabilityGoals</elementReference></value>
         </inputAssignments>
         <inputAssignments>
-            <field>Climate_Context__c</field>
-            <value><elementReference>climateContext</elementReference></value>
+            <field>Project_Pipeline__c</field>
+            <value><elementReference>projectPipeline</elementReference></value>
         </inputAssignments>
         <inputAssignments>
-            <field>Price_Range__c</field>
-            <value><elementReference>priceRange</elementReference></value>
+            <field>Grid_Interconnection__c</field>
+            <value><elementReference>gridInterconnection</elementReference></value>
         </inputAssignments>
         <inputAssignments>
-            <field>Birthdate</field>
-            <value><elementReference>birthday</elementReference></value>
+            <field>Site_Conditions__c</field>
+            <value><elementReference>siteConditions</elementReference></value>
         </inputAssignments>
         <object>Contact</object>
     </recordUpdates>
@@ -186,7 +229,7 @@
     <assignments>
         <name>Set_Success</name>
         <label>Set Success</label>
-        <locationX>176</locationX>
+        <locationX>300</locationX>
         <locationY>350</locationY>
         <assignmentItems>
             <assignToReference>outputSuccess</assignToReference>
@@ -199,7 +242,7 @@
     <assignments>
         <name>Set_Error</name>
         <label>Set Error</label>
-        <locationX>400</locationX>
+        <locationX>500</locationX>
         <locationY>350</locationY>
         <assignmentItems>
             <assignToReference>outputSuccess</assignToReference>

@@ -162,10 +162,12 @@ export const SceneProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
 
         const cur = sceneRef.current;
-        const alreadyHasImage = cur.setting === setting && (
-          (cur.background.type === 'image' && cur.background.value) ||
-          (cur.background.type === 'generative' && cur.background.isLoading)
-        );
+        const hasValidImage = cur.background.type === 'image' && cur.background.value && !cur.background.value.includes('default');
+        const isGenerating = cur.background.type === 'generative' && cur.background.isLoading;
+        const agentRequestedGeneration = payload.sceneContext?.generateBackground === true;
+        // Preserve existing valid image unless agent explicitly requests regeneration
+        const alreadyHasImage = (cur.setting === setting && (hasValidImage || isGenerating)) ||
+          (hasValidImage && !agentRequestedGeneration);
 
         dispatch({ type: 'SET_SETTING', setting });
 
@@ -283,9 +285,20 @@ export const SceneProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             });
           } catch (error) {
             console.error('Welcome background generation failed:', error);
+            // Fall back to default background image
+            dispatch({
+              type: 'SET_BACKGROUND',
+              background: { type: 'image', value: '/assets/backgrounds/default.png' },
+            });
           }
+        } else {
+          // Use static default background for anonymous/appended customers
+          // who shouldn't trigger image generation
+          dispatch({
+            type: 'SET_BACKGROUND',
+            background: { type: 'image', value: '/assets/backgrounds/default.png' },
+          });
         }
-        // B2B: Use gradient by default — no image generation for welcome
         break;
       }
 
